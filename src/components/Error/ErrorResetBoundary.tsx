@@ -29,15 +29,6 @@ function ClearCvWizardOnLeaveGenerateRoute() {
     prevPathnameRef.current = location.pathname;
   }, [location.pathname]);
 
-  useEffect(() => {
-    return () => {
-      const p = prevPathnameRef.current;
-      if (p != null && isCvGenerateWizardPath(p)) {
-        useCvWizardStore.getState().resetAll();
-      }
-    };
-  }, []);
-
   return null;
 }
 
