@@ -19,7 +19,13 @@ import { toast } from 'react-toastify';
 import { openCvShareInNewTab } from '@/constants/routePath';
 import { formatDateOnly } from '@/pages/portfolio/utils/date';
 import { copyTextToClipboard } from '@/utils/copyTextToClipboard';
-import { getPortfolioCvById, type PortfolioCvDetail } from '../../apis/cv';
+import {
+  CV_COLOR_THEME_SWATCHES,
+  CV_CUSTOMIZE_COLOR_THEME_LABELS,
+  CV_CUSTOMIZE_COLOR_THEME_VALUES,
+  type CvCustomizeColorThemeValue,
+} from '../../constants/cvDesignCustomizeConstants';
+import { getPortfolioCvById, type PortfolioCvDetail, type PortfolioCvDesignPreferences } from '../../apis/cv';
 import usePatchPortfolioCvMutation from '../../hooks/usePatchPortfolioCvMutation';
 import { buildCvPreviewSrcDoc } from '../../utils/buildCvPreviewSrcDoc';
 import { downloadCvHtmlAsA4Pdf } from '../../utils/downloadCvHtmlAsA4Pdf';
@@ -70,6 +76,27 @@ function notesToPills(notes: string): string[] {
     .split(/[,，、]/)
     .map(s => s.trim())
     .filter(Boolean);
+}
+
+function isCvColorThemeKey(s: string): s is CvCustomizeColorThemeValue {
+  return (CV_CUSTOMIZE_COLOR_THEME_VALUES as readonly string[]).includes(s);
+}
+
+/** HTML 생성 시 저장된 design_preferences — 비어 있으면 null */
+function summarizeDesignPreferences(dp: PortfolioCvDesignPreferences | undefined) {
+  if (!dp) return null;
+  const layout = dp.layout?.trim() ?? '';
+  const density = dp.density?.trim() ?? '';
+  const rawTheme = (dp.color_theme ?? '').trim().toLowerCase();
+  const notes = (dp.additional_notes ?? '').trim() ?? '';
+  const themeKey = isCvColorThemeKey(rawTheme) ? rawTheme : null;
+  const themeLabel =
+    themeKey != null
+      ? CV_CUSTOMIZE_COLOR_THEME_LABELS[themeKey]
+      : (dp.color_theme ?? '').trim();
+  if (!layout && !density && !themeLabel && !notes) return null;
+  const sw = themeKey != null ? CV_COLOR_THEME_SWATCHES[themeKey] : CV_COLOR_THEME_SWATCHES.indigo;
+  return { layout, density, themeLabel, notes, accent: sw.primary, soft: sw.soft };
 }
 
 /** 크게 보기 모달: 가로 70vw, 세로 80vh ~ 90vh */
@@ -149,6 +176,10 @@ const CvPreviewContent = ({
   };
 
   const pills = data ? notesToPills(data.additional_notes ?? '') : [];
+  const designPrefsSummary = useMemo(
+    () => (data ? summarizeDesignPreferences(data.design_preferences) : null),
+    [data],
+  );
   const htmlRaw = isEditing ? editHtml : (data?.html_content ?? '');
   const htmlPreviewSrcDoc = useMemo(() => {
     const sanitized = sanitizeCvHtml(htmlRaw);
@@ -531,6 +562,55 @@ const CvPreviewContent = ({
                   />
                 </Flex.Row>
               </Flex.Row>
+              {designPrefsSummary ? (
+                <Flex.Column gap="0.35rem" width="100%" style={{ minWidth: 0 }}>
+                  <Text
+                    margin="0"
+                    color={palette.grey600}
+                    style={{
+                      fontSize: '0.6875rem',
+                      fontWeight: 600,
+                      letterSpacing: '0.02em',
+                    }}
+                  >
+                    AI 맞춤 디자인 (생성 시 설정)
+                  </Text>
+                  <S.DesignPrefsStrip $soft={designPrefsSummary.soft}>
+                    <Flex.Row gap="0.35rem" wrap="wrap" align="center" width="100%" style={{ minWidth: 0 }}>
+                      {designPrefsSummary.layout ? (
+                        <S.DesignPrefTag
+                          $accent={designPrefsSummary.accent}
+                          $soft={designPrefsSummary.soft}
+                          title="레이아웃"
+                        >
+                          레이아웃 · {designPrefsSummary.layout}
+                        </S.DesignPrefTag>
+                      ) : null}
+                      {designPrefsSummary.themeLabel ? (
+                        <S.DesignPrefTag
+                          $accent={designPrefsSummary.accent}
+                          $soft={designPrefsSummary.soft}
+                          title="색상 테마"
+                        >
+                          색상 · {designPrefsSummary.themeLabel}
+                        </S.DesignPrefTag>
+                      ) : null}
+                      {designPrefsSummary.density ? (
+                        <S.DesignPrefTag
+                          $accent={designPrefsSummary.accent}
+                          $soft={designPrefsSummary.soft}
+                          title="정보량"
+                        >
+                          정보량 · {designPrefsSummary.density}
+                        </S.DesignPrefTag>
+                      ) : null}
+                    </Flex.Row>
+                    {designPrefsSummary.notes ? (
+                      <S.DesignPrefNotes>{designPrefsSummary.notes}</S.DesignPrefNotes>
+                    ) : null}
+                  </S.DesignPrefsStrip>
+                </Flex.Column>
+              ) : null}
               <S.PreWrapScrollable $layout={layout}>{data.prompt || '—'}</S.PreWrapScrollable>
             </S.Section>
 
@@ -912,5 +992,50 @@ const S = {
     background-color: ${palette.blue300};
     border: 1px solid ${palette.grey200};
     border-radius: 2rem;
+  `,
+  DesignPrefsStrip: styled('div', {
+    shouldForwardProp: p => p !== '$soft',
+  })<{ $soft: string }>`
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+    padding: 0.65rem 0.8rem 0.7rem;
+    border-radius: 0.5rem;
+    border: 1px solid ${palette.grey200};
+    background: ${({ $soft }) =>
+      `linear-gradient(120deg, ${$soft}4d 0%, ${palette.white} 55%, ${palette.grey100} 100%)`};
+  `,
+  DesignPrefTag: styled('span', {
+    shouldForwardProp: p => p !== '$accent' && p !== '$soft',
+  })<{ $accent: string; $soft: string }>`
+    display: inline-flex;
+    align-items: center;
+    max-width: 100%;
+    box-sizing: border-box;
+    padding: 0.22rem 0.55rem;
+    font-size: 0.6875rem;
+    font-weight: 700;
+    line-height: 1.35;
+    letter-spacing: -0.01em;
+    color: ${({ $accent }) => $accent};
+    background-color: ${({ $soft }) => `${$soft}40`};
+    border: 1px solid ${({ $accent }) => `${$accent}55`};
+    border-radius: 999px;
+    word-break: break-word;
+  `,
+  DesignPrefNotes: styled('div')`
+    margin: 0;
+    padding: 0.5rem 0.6rem;
+    font-size: 0.8125rem;
+    line-height: 1.55;
+    color: ${palette.nearBlack};
+    background-color: ${palette.white};
+    border-radius: 0.4rem;
+    border: 1px solid ${palette.grey200};
+    white-space: pre-wrap;
+    word-break: break-word;
   `,
 };

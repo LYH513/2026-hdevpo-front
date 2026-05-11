@@ -22,7 +22,7 @@ import type { ActivityItem } from '../../types/portfolioItems';
 
 type ActivityEditDraft = Partial<ActivityItem> & { tagCompose?: string };
 
-const ACTIVITY_CATEGORY_PRESETS = ['동아리', '자격증', '수상', '봉사'] as const;
+const ACTIVITY_CATEGORY_PRESETS = ['동아리', '자격증', '수상', '봉사', '공모전', '해커톤' , '어학연수', '인턴/실무', '오픈소스', '대외활동', '기타'] as const;
 
 function dedupeActivityTags(tags: string[] | undefined): string[] {
   if (!tags?.length) return [];
