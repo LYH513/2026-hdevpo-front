@@ -237,76 +237,15 @@ const CvGenerateStep3Customize = ({
             lineHeight: 1.6,
           }}
         >
-          어떤 경험을 돋보이게 할지 먼저 적어 보시고, 정보량·레이아웃·색감을 골라 주세요. 「AI 결과
-          생성하기」를 누르면 맞춤 프롬프트와 포트폴리오 HTML이 만들어져요. 완성된 HTML은 다음 단계에서
-          바로 확인하고 수정할 수 있습니다.
+          레이아웃·색상 테마·정보량을 골라 주시고, 필요하면 맨 아래에 추가 변경 사항을 적어 주세요.
+          「AI 결과 생성하기」를 누르면 맞춤 프롬프트와 포트폴리오 HTML이 만들어져요. 완성된 HTML은
+          다음 단계에서 바로 확인하고 수정할 수 있습니다.
         </Text>
       </Flex.Column>
 
       <S.PanelShell>
         <S.Panel>
-        <S.SectionTitle>추가 변경 사항</S.SectionTitle>
-        <Text
-          margin="0 0 0.35rem 0"
-          style={{
-            ...theme.typography.caption,
-            color: theme.palette.text.secondary,
-            lineHeight: 1.5,
-          }}
-        >
-          프로젝트(레포)를 메인으로 보이게 할지, 마일리지·교외 활동을 앞쪽에서 부각할지 등 원하는
-          강조점을 적어 주세요.
-        </Text>
-        <Input
-          multiline
-          minRows={isMobile ? 3 : 4}
-          fullWidth
-          value={additionalNotes}
-          onChange={e => setAdditionalNotes(e.target.value)}
-          placeholder="예: GitHub 프로젝트 섹션을 가장 크게·기술 스택과 함께 상세히 / 마일리지·대외활동은 상단 요약 카드로 눈에 띄게 / 수상·자격은 짧게 한 줄씩만"
-          inputProps={{
-            maxLength: CV_CUSTOMIZE_MAX_ADDITIONAL_NOTES,
-            'aria-label': '추가 변경 사항',
-          }}
-          sx={{
-            '& .MuiOutlinedInput-root': {
-              borderRadius: '0.5rem',
-              backgroundColor: theme.palette.background.paper,
-            },
-          }}
-        />
-        <Flex.Row justify="flex-end" width="100%">
-          <Text
-            margin="0"
-            style={{
-              ...theme.typography.caption,
-              color: notesOver ? palette.red500 : theme.palette.text.secondary,
-              fontWeight: 600,
-            }}
-          >
-            {notesLen} / {CV_CUSTOMIZE_MAX_ADDITIONAL_NOTES}
-          </Text>
-        </Flex.Row>
-
-        <S.SectionTitle style={{ marginTop: '1.25rem' }}>정보량</S.SectionTitle>
-        <Flex.Row gap="0.55rem" wrap="wrap" width="100%">
-          {CV_CUSTOMIZE_DENSITY_VALUES.map(value => {
-            const selected = density === value;
-            return (
-              <S.DensityChip
-                key={value}
-                type="button"
-                $selected={selected}
-                onClick={() => setDensity(value)}
-                aria-pressed={selected}
-              >
-                {value}
-              </S.DensityChip>
-            );
-          })}
-        </Flex.Row>
-
-        <S.SectionTitle style={{ marginTop: '1.25rem' }}>스타일 · 레이아웃</S.SectionTitle>
+        <S.SectionTitle>스타일 · 레이아웃</S.SectionTitle>
         <Flex.Row gap="0.65rem" wrap="wrap" width="100%" style={{ minWidth: 0 }}>
           {CV_CUSTOMIZE_LAYOUT_VALUES.map(value => {
             const selected = layout === value;
@@ -351,6 +290,67 @@ const CvGenerateStep3Customize = ({
               </S.ColorChoice>
             );
           })}
+        </Flex.Row>
+
+        <S.SectionTitle style={{ marginTop: '1.25rem' }}>정보량</S.SectionTitle>
+        <Flex.Row gap="0.55rem" wrap="wrap" width="100%">
+          {CV_CUSTOMIZE_DENSITY_VALUES.map(value => {
+            const selected = density === value;
+            return (
+              <S.DensityChip
+                key={value}
+                type="button"
+                $selected={selected}
+                onClick={() => setDensity(value)}
+                aria-pressed={selected}
+              >
+                {value}
+              </S.DensityChip>
+            );
+          })}
+        </Flex.Row>
+
+        <S.SectionTitle style={{ marginTop: '1.25rem' }}>추가 변경 사항</S.SectionTitle>
+        <Text
+          margin="0 0 0.35rem 0"
+          style={{
+            ...theme.typography.caption,
+            color: theme.palette.text.secondary,
+            lineHeight: 1.5,
+          }}
+        >
+          프로젝트(레포)를 메인으로 보이게 할지, 마일리지·교외 활동을 앞쪽에서 부각할지 등 원하는
+          강조점을 적어 주세요.
+        </Text>
+        <Input
+          multiline
+          minRows={isMobile ? 3 : 4}
+          fullWidth
+          value={additionalNotes}
+          onChange={e => setAdditionalNotes(e.target.value)}
+          placeholder="예: GitHub 프로젝트 섹션을 가장 크게·기술 스택과 함께 상세히 / 마일리지·대외활동은 상단 요약 카드로 눈에 띄게 / 수상·자격은 짧게 한 줄씩만"
+          inputProps={{
+            maxLength: CV_CUSTOMIZE_MAX_ADDITIONAL_NOTES,
+            'aria-label': '추가 변경 사항',
+          }}
+          sx={{
+            '& .MuiOutlinedInput-root': {
+              borderRadius: '0.5rem',
+              backgroundColor: theme.palette.background.paper,
+            },
+          }}
+        />
+        <Flex.Row justify="flex-end" width="100%">
+          <Text
+            margin="0"
+            style={{
+              ...theme.typography.caption,
+              color: notesOver ? palette.red500 : theme.palette.text.secondary,
+              fontWeight: 600,
+            }}
+          >
+            {notesLen} / {CV_CUSTOMIZE_MAX_ADDITIONAL_NOTES}
+          </Text>
         </Flex.Row>
         </S.Panel>
         {pending ? (
