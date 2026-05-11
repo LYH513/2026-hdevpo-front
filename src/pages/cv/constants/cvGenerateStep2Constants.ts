@@ -7,5 +7,5 @@ export const JOB_POSTING_PLACEHOLDER = `예) 회사: 카카오
 export const ADDITIONAL_NOTES_PLACEHOLDER =
   '예) 프로젝트 경험 위주로 강조해줘, 간결하게 작성해줘 등';
 
-export const JOB_INFO_MAX_LENGTH = 400;
+export const JOB_INFO_MAX_LENGTH = 1000;
 
