@@ -8,12 +8,17 @@ import VerticalSplitOutlinedIcon from '@mui/icons-material/VerticalSplitOutlined
 import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import OpenInNewIcon from '@mui/icons-material/OpenInNew';
-import VisibilityIcon from '@mui/icons-material/Visibility';
 import WorkOutlineIcon from '@mui/icons-material/WorkOutline';
 import { Dialog, DialogContent, LinearProgress, useMediaQuery } from '@mui/material';
 import { styled } from '@mui/material/styles';
 import { useQuery } from '@tanstack/react-query';
-import { useCallback, useState, type FunctionComponent, type SVGProps } from 'react';
+import {
+  useCallback,
+  useState,
+  type FunctionComponent,
+  type KeyboardEvent,
+  type SVGProps,
+} from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 
@@ -32,9 +37,6 @@ import { CV_QUERY_CONFIG } from '../../constants/cvQueryConfig';
 
 const AddIconWrap: FunctionComponent<SVGProps<SVGSVGElement>> = () => (
   <AddIcon sx={{ fontSize: 20 }} />
-);
-const VisibilityIconWrap: FunctionComponent<SVGProps<SVGSVGElement>> = () => (
-  <VisibilityIcon sx={{ fontSize: 18 }} />
 );
 const DeleteOutlineIconWrap: FunctionComponent<SVGProps<SVGSVGElement>> = () => (
   <DeleteOutlineIcon sx={{ fontSize: 18 }} />
@@ -204,7 +206,7 @@ const CvManagementPanel = () => {
                   key={item.id}
                   item={item}
                   isSelected={previewId === item.id}
-                  onView={() => openPreview(item.id)}
+                  onSelect={() => openPreview(item.id)}
                   onRequestDelete={() => setDeleteConfirmId(item.id)}
                   deletePending={deletePending}
                   onOpenShareLink={() => {
@@ -254,7 +256,7 @@ const CvManagementPanel = () => {
                   왼쪽 목록에서 카드를 선택하면 상세 내용이 여기에 표시됩니다.
                 </S.EmptyTitle>
                 <S.EmptyHint style={{ textAlign: 'center', wordBreak: 'keep-all' }}>
-                  「보기」를 눌러 주세요.
+                  왼쪽 카드를 눌러 선택해 주세요.
                 </S.EmptyHint>
               </S.PreviewEmpty>
             )}
@@ -350,14 +352,14 @@ const CvManagementPanel = () => {
 function CvHistoryCard({
   item,
   isSelected,
-  onView,
+  onSelect,
   onRequestDelete,
   deletePending,
   onOpenShareLink,
 }: {
   item: PortfolioCvListItem;
   isSelected: boolean;
-  onView: () => void;
+  onSelect: () => void;
   onRequestDelete: () => void;
   deletePending: boolean;
   onOpenShareLink: () => void;
@@ -379,9 +381,25 @@ function CvHistoryCard({
   const snippet = truncateText(snippetSource, 140);
   const isHtmlPublic = Boolean(item.is_public);
   const hasShareToken = Boolean(String(item.public_token ?? '').trim());
+  const cardTitle = item.title?.trim() ? item.title.trim() : '제목 없음';
+
+  const handleCardKeyDown = (e: KeyboardEvent<HTMLElement>) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      onSelect();
+    }
+  };
 
   return (
-    <S.HistoryCard $selected={isSelected}>
+    <S.HistoryCard
+      $selected={isSelected}
+      onClick={onSelect}
+      onKeyDown={handleCardKeyDown}
+      role="button"
+      tabIndex={0}
+      aria-current={isSelected ? 'true' : undefined}
+      aria-label={`${cardTitle} 포트폴리오 상세`}
+    >
       <Flex.Row
         align="flex-start"
         justify="space-between"
@@ -401,7 +419,7 @@ function CvHistoryCard({
               wordBreak: 'break-word',
             }}
           >
-            {item.title?.trim() ? item.title : '제목 없음'}
+            {cardTitle}
           </Text>
           <Flex.Row align="center" gap="0.5rem" wrap="wrap">
             <S.MetaChip>
@@ -427,24 +445,18 @@ function CvHistoryCard({
             justifyContent: isMobile ? 'flex-end' : 'flex-start',
           }}
         >
-          <Button
-            label="보기"
-            variant="outlined"
-            color="blue"
-            size={btnSize}
-            icon={VisibilityIconWrap}
-            iconPosition="start"
-            onClick={onView}
-          />
           {isHtmlPublic ? (
             <Button
               label="링크 열기"
               variant="outlined"
-              color="grey"
+              color="blue"
               size={btnSize}
               icon={OpenInNewIconWrap}
               iconPosition="start"
-              onClick={onOpenShareLink}
+              onClick={e => {
+                e.stopPropagation();
+                onOpenShareLink();
+              }}
               disabled={!hasShareToken}
             />
           ) : null}
@@ -455,7 +467,10 @@ function CvHistoryCard({
             size={btnSize}
             icon={DeleteOutlineIconWrap}
             iconPosition="start"
-            onClick={onRequestDelete}
+            onClick={e => {
+              e.stopPropagation();
+              onRequestDelete();
+            }}
             disabled={deletePending}
           />
         </Flex.Row>
@@ -567,10 +582,16 @@ const S = {
         $selected ? palette.blue400 : theme.palette.grey[200]};
     box-shadow: 0 1px 2px rgba(16, 24, 40, 0.06);
     transition: border-color 0.15s ease, box-shadow 0.15s ease;
+    cursor: pointer;
+    text-align: left;
     &:hover {
       border-color: ${({ theme, $selected }) =>
         $selected ? palette.blue400 : theme.palette.grey[300]};
       box-shadow: 0 2px 6px rgba(16, 24, 40, 0.08);
+    }
+    &:focus-visible {
+      outline: 2px solid ${palette.blue500};
+      outline-offset: 2px;
     }
   `,
   MetaChip: styled('span')`
