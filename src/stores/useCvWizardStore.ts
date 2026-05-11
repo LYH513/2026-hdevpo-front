@@ -2,7 +2,8 @@ import { STORE_NAME } from '@/constants/storeName';
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 
-export type CvWizardUiStep = 1 | 2 | 3 | 4;
+/** `3.5`: 프롬프트 단계에서만 진입(스테퍼에는 3단계와 동일하게 표시) */
+export type CvWizardUiStep = 1 | 2 | 3 | 3.5 | 4;
 
 /** `setState`처럼 값 또는 `(prev) => next` */
 type IdListSetterArg = number[] | ((prev: number[]) => number[]);
@@ -109,6 +110,7 @@ export function getValidatedWizardStep(): CvWizardUiStep {
     if (hasPrompt) return 3;
     return 2;
   }
+  if (wizardStep === 3.5) return hasPrompt ? 3.5 : 2;
   if (wizardStep === 3) return hasPrompt ? 3 : 2;
   if (wizardStep === 2) return 2;
   return 1;

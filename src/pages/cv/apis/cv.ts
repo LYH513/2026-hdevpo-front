@@ -43,6 +43,10 @@ export interface PortfolioCvDetail extends PortfolioCvListItem {
   selected_repo_ids: number[];
   selected_mileage_ids: number[];
   selected_activity_ids: number[];
+  /** POST generate-html 등 응답에 포함될 수 있음 */
+  model_used?: string;
+  tokens_used?: number;
+  last_generated_at?: string;
 }
 
 function readCvId(o: Record<string, unknown>): number {
@@ -133,13 +137,21 @@ function normalizePortfolioCvListItem(raw: unknown): PortfolioCvListItem {
   };
 }
 
+function readOptionalTokensUsed(v: unknown): number | undefined {
+  if (typeof v === 'number' && Number.isFinite(v)) return v;
+  if (typeof v === 'string' && v.trim() !== '' && !Number.isNaN(Number(v))) {
+    return Number(v);
+  }
+  return undefined;
+}
+
 export function normalizePortfolioCvDetail(raw: unknown): PortfolioCvDetail {
   const base = normalizePortfolioCvListItem(raw);
   const o =
     raw != null && typeof raw === 'object'
       ? (raw as Record<string, unknown>)
       : {};
-  return {
+  const detail: PortfolioCvDetail = {
     ...base,
     prompt: String(o.prompt ?? ''),
     html_content: String(o.html_content ?? ''),
@@ -147,6 +159,17 @@ export function normalizePortfolioCvDetail(raw: unknown): PortfolioCvDetail {
     selected_mileage_ids: readIdArray(o.selected_mileage_ids),
     selected_activity_ids: readIdArray(o.selected_activity_ids),
   };
+  if (o.model_used != null && String(o.model_used).trim() !== '') {
+    detail.model_used = String(o.model_used);
+  }
+  const tu = readOptionalTokensUsed(o.tokens_used);
+  if (tu !== undefined) {
+    detail.tokens_used = tu;
+  }
+  if (o.last_generated_at != null && String(o.last_generated_at).trim() !== '') {
+    detail.last_generated_at = String(o.last_generated_at);
+  }
+  return detail;
 }
 
 export const getPortfolioCvList = async () => {
@@ -174,6 +197,10 @@ export interface PortfolioCvBuildPromptRequest {
   selected_mileage_ids: number[];
   selected_activity_ids: number[];
   selected_repo_ids: number[];
+  /**
+   * 2→3단계에서는 `null`로 전송. 객체 전송 시 서버가 STEP 2에 [design_preferences] 블록으로 반영·저장.
+   */
+  design_preferences: PortfolioCvDesignPreferences | null;
 }
 
 export interface PortfolioCvBuildPromptResponse {
@@ -187,6 +214,29 @@ export const postPortfolioCvBuildPrompt = async (body: PortfolioCvBuildPromptReq
     `${ENDPOINT.PORTFOLIO_CV}/build-prompt`,
     body,
   );
+};
+
+/**
+ * POST /api/portfolio/cv/{id}/generate-html
+ * design_preferences 적용 + OpenAI로 HTML 생성. `model`은 서버 기본 사용 시 생략.
+ */
+export interface PortfolioCvGenerateHtmlRequest {
+  design_preferences: PortfolioCvDesignPreferences;
+  model?: string;
+}
+
+export const postPortfolioCvGenerateHtml = async (
+  id: number,
+  body: PortfolioCvGenerateHtmlRequest,
+) => {
+  const payload: { design_preferences: PortfolioCvDesignPreferences } = {
+    design_preferences: body.design_preferences,
+  };
+  const raw = await http.post<typeof payload, unknown>(
+    `${ENDPOINT.PORTFOLIO_CV}/${id}/generate-html`,
+    payload,
+  );
+  return normalizePortfolioCvDetail(raw);
 };
 
 /** PATCH /api/portfolio/cv/{id} — title·html_content·is_public 각각 선택(부분 갱신 가능) */

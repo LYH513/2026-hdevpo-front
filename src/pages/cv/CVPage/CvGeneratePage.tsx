@@ -17,6 +17,7 @@ import { toast } from 'react-toastify';
 
 import { usePortfolioContext } from '@/pages/portfolio/PortfolioPage/context/PortfolioContext';
 
+import type { PortfolioCvDetail } from '../apis/cv';
 import usePatchPortfolioCvMutation from '../hooks/usePatchPortfolioCvMutation';
 import usePostPortfolioCvBuildPromptMutation from '../hooks/usePostPortfolioCvBuildPromptMutation';
 import { repoSelectionId } from '../utils/cvWizardSelection';
@@ -26,22 +27,29 @@ import { CvGeneratePageS as S } from './cvGeneratePageStyles';
 import CvGenerateStep1 from './components/CvGenerateStep1';
 import CvGenerateStep2 from './components/CvGenerateStep2';
 import CvGenerateStep3 from './components/CvGenerateStep3';
+import CvGenerateStep3Customize from './components/CvGenerateStep3Customize';
 import CvGenerateStep4 from './components/CvGenerateStep4';
 
-type WizardStep = 1 | 2 | 3 | 4;
+type WizardStep = 1 | 2 | 3 | 3.5 | 4;
 
 type StepDef = { readonly n: 1 | 2 | 3 | 4; readonly label: string };
 
 type StepVisualState = 'completed' | 'active' | 'upcoming';
 
+/** 3.5는 스테퍼에서 3과 동일한 진행도로 표시 */
+function stepperDisplayStep(wizardStep: WizardStep): 1 | 2 | 3 | 4 {
+  return wizardStep === 3.5 ? 3 : wizardStep;
+}
+
 function stepVisual(stepN: number, wizardStep: WizardStep): StepVisualState {
-  if (wizardStep === 1) return stepN === 1 ? 'active' : 'upcoming';
-  if (wizardStep === 2) {
+  const s = stepperDisplayStep(wizardStep);
+  if (s === 1) return stepN === 1 ? 'active' : 'upcoming';
+  if (s === 2) {
     if (stepN === 1) return 'completed';
     if (stepN === 2) return 'active';
     return 'upcoming';
   }
-  if (wizardStep === 3) {
+  if (s === 3) {
     if (stepN <= 2) return 'completed';
     if (stepN === 3) return 'active';
     return 'upcoming';
@@ -151,7 +159,7 @@ const CvGeneratePage = () => {
   }, [visibleRepos, setSelectedRepoIds]);
 
   useEffect(() => {
-    if (wizardStep !== 3) return;
+    if (wizardStep !== 3 && wizardStep !== 3.5) return;
     if (!generatedPrompt.trim()) setWizardStep(2);
   }, [wizardStep, generatedPrompt, setWizardStep]);
 
@@ -206,6 +214,24 @@ const CvGeneratePage = () => {
   const handlePrevFromStep3 = useCallback(() => {
     setWizardStep(2);
   }, [setWizardStep]);
+
+  const handleGoToStep3Customize = useCallback(() => {
+    setWizardStep(3.5);
+  }, [setWizardStep]);
+
+  const handlePrevFromStep3Customize = useCallback(() => {
+    setWizardStep(3);
+  }, [setWizardStep]);
+
+  const handleGenerateHtmlSuccess = useCallback(
+    (detail: PortfolioCvDetail) => {
+      setGeneratedPrompt(detail.prompt);
+      setHtmlResultDraft(detail.html_content ?? '');
+      setWizardStep(4);
+      toast.success('HTML이 생성되어 4단계에 반영되었습니다.');
+    },
+    [setGeneratedPrompt, setHtmlResultDraft, setWizardStep],
+  );
 
   const handleGoToStep4 = useCallback(() => {
     if (pendingCvId === null) {
@@ -262,6 +288,7 @@ const CvGeneratePage = () => {
         selected_mileage_ids: ids.selected_mileage_ids,
         selected_activity_ids: ids.selected_activity_ids,
         selected_repo_ids: ids.selected_repo_ids,
+        design_preferences: null,
       },
       {
         onSuccess: data => {
@@ -373,7 +400,7 @@ const CvGeneratePage = () => {
                 </S.StepItemColumn>
                 {idx < wizardSteps.length - 1 ? (
                   <S.StepConnector
-                    $completed={wizardStep >= idx + 2}
+                    $completed={stepperDisplayStep(wizardStep) >= idx + 2}
                     aria-hidden
                   />
                 ) : null}
@@ -454,6 +481,15 @@ const CvGeneratePage = () => {
                 onChange={setGeneratedPrompt}
                 onPrev={handlePrevFromStep3}
                 onNextToStep4={handleGoToStep4}
+                onGoToCustomize={handleGoToStep3Customize}
+              />
+            ) : null}
+
+            {wizardStep === 3.5 ? (
+              <CvGenerateStep3Customize
+                onPrevToPromptStep={handlePrevFromStep3Customize}
+                cvId={pendingCvId}
+                onGenerateHtmlSuccess={handleGenerateHtmlSuccess}
               />
             ) : null}
 

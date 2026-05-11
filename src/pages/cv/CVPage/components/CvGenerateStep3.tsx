@@ -1,10 +1,12 @@
 import { Button, Flex, Heading, Text } from '@/components';
+import { MAX_RESPONSIVE_WIDTH } from '@/constants/system';
 import { palette } from '@/styles/palette';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
+import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import OpenInNewIcon from '@mui/icons-material/OpenInNew';
-import { Button as MuiButton, TextField, useTheme } from '@mui/material';
+import { Button as MuiButton, TextField, useMediaQuery, useTheme } from '@mui/material';
 import { styled } from '@mui/material/styles';
 import { useCallback, type FunctionComponent, type SVGProps } from 'react';
 import ReactMarkdown from 'react-markdown';
@@ -20,15 +22,31 @@ const CopyIconWrap: FunctionComponent<SVGProps<SVGSVGElement>> = () => (
   <ContentCopyIcon sx={{ fontSize: 20 }} />
 );
 
+const ArrowForwardIconWrap: FunctionComponent<SVGProps<SVGSVGElement>> = () => (
+  <ArrowForwardIcon sx={{ fontSize: 20 }} />
+);
+
+const AutoAwesomeIconWrap: FunctionComponent<SVGProps<SVGSVGElement>> = () => (
+  <AutoAwesomeIcon sx={{ fontSize: 20 }} />
+);
+
 export interface CvGenerateStep3Props {
   value: string;
   onChange: (next: string) => void;
   onPrev: () => void;
   onNextToStep4: () => void;
+  onGoToCustomize: () => void;
 }
 
-const CvGenerateStep3 = ({ value, onChange, onPrev, onNextToStep4 }: CvGenerateStep3Props) => {
+const CvGenerateStep3 = ({
+  value,
+  onChange,
+  onPrev,
+  onNextToStep4,
+  onGoToCustomize,
+}: CvGenerateStep3Props) => {
   const theme = useTheme();
+  const isMobile = useMediaQuery(MAX_RESPONSIVE_WIDTH);
 
   const handleCopy = useCallback(async () => {
     const t = value.trim();
@@ -51,24 +69,81 @@ const CvGenerateStep3 = ({ value, onChange, onPrev, onNextToStep4 }: CvGenerateS
     window.open(href, '_blank', 'noopener,noreferrer');
   }, []);
 
+  const titleBlock = (
+    <Flex.Column
+      gap="0.35rem"
+      width={isMobile ? '100%' : undefined}
+      style={
+        isMobile
+          ? { minWidth: 0, boxSizing: 'border-box' }
+          : { flex: '1 1 0%', minWidth: 0, boxSizing: 'border-box' }
+      }
+    >
+      <Heading
+        as="h3"
+        margin="0"
+        color={theme.palette.text.primary}
+        style={{ wordBreak: 'keep-all', overflowWrap: 'break-word' }}
+      >
+        프롬프트가 생성되었습니다
+      </Heading>
+      <Text
+        margin="0"
+        style={{
+          ...theme.typography.body2,
+          color: theme.palette.grey[600],
+          lineHeight: 1.5,
+          wordBreak: 'keep-all',
+          overflowWrap: 'break-word',
+        }}
+      >
+        아래에서 내용을 수정할 수 있습니다. <br />
+        마크다운 미리보기와 함께 확인한 뒤 복사해 ChatGPT, Claude 등 AI에 붙여넣으세요.
+      </Text>
+    </Flex.Column>
+  );
+
+  const customizeButton = (
+    <Button
+      label="AI 커스터마이징하기"
+      variant="contained"
+      color="blue"
+      size={isMobile ? 'medium' : 'large'}
+      icon={AutoAwesomeIconWrap}
+      iconPosition="start"
+      onClick={onGoToCustomize}
+      aria-label="AI 커스터마이징 단계로 이동"
+    />
+  );
+
   return (
     <Flex.Column gap="1.25rem" width="100%" style={{ marginTop: '1.5rem' }}>
-      <Flex.Column gap="0.35rem" width="100%">
-        <Heading as="h3" margin="0" color={theme.palette.text.primary}>
-          프롬프트가 생성되었습니다
-        </Heading>
-        <Text
-          margin="0"
-          style={{
-            ...theme.typography.body2,
-            color: theme.palette.grey[600],
-            lineHeight: 1.5,
-          }}
+      {isMobile ? (
+        <Flex.Column gap="0.75rem" width="100%" style={{ minWidth: 0 }}>
+          {titleBlock}
+          <Flex.Row align="center" justify="flex-end" width="100%" wrap="nowrap">
+            {customizeButton}
+          </Flex.Row>
+        </Flex.Column>
+      ) : (
+        <Flex.Row
+          align="flex-start"
+          justify="space-between"
+          gap="1rem"
+          wrap="nowrap"
+          width="100%"
+          style={{ minWidth: 0 }}
         >
-          아래에서 내용을 수정할 수 있으며, 마크다운 미리보기와 함께 확인한 뒤 복사해 ChatGPT, Claude
-          등 AI에 붙여넣으세요.
-        </Text>
-      </Flex.Column>
+          {titleBlock}
+          <Flex.Row
+            align="center"
+            wrap="nowrap"
+            style={{ flex: '0 0 auto', flexShrink: 0, boxSizing: 'border-box' }}
+          >
+            {customizeButton}
+          </Flex.Row>
+        </Flex.Row>
+      )}
 
       <S.EditorPreviewRow>
         <Flex.Column gap="0.5rem" style={{ flex: '1 1 0', minWidth: 0, width: '100%' }}>
@@ -198,7 +273,7 @@ const CvGenerateStep3 = ({ value, onChange, onPrev, onNextToStep4 }: CvGenerateS
           variant="contained"
           color="blue"
           size="large"
-          icon={() => <ArrowForwardIcon sx={{ fontSize: 20 }} />}
+          icon={ArrowForwardIconWrap}
           iconPosition="end"
           onClick={onNextToStep4}
         />

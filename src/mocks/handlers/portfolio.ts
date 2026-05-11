@@ -24,6 +24,7 @@ import { mockPortfolioCvDetails } from '@/mocks/fixtures/portfolioCv';
 import { mockUserInfoResponse } from '@/mocks/fixtures/portfolioUserInfo';
 import type {
   PortfolioCvBuildPromptRequest,
+  PortfolioCvDesignPreferences,
   PortfolioCvDetail,
 } from '@/pages/cv/apis/cv';
 
@@ -478,6 +479,69 @@ export const PortfolioHandlers = [
     }
   }),
 
+  http.post(
+    BASE_URL + `${ENDPOINT.PORTFOLIO_CV}/:id/generate-html`,
+    async ({ params, request }) => {
+      const id = Number(params.id);
+      const idx = cvStore.findIndex(c => c.id === id);
+      if (idx === -1 || Number.isNaN(id)) {
+        return new HttpResponse(null, { status: 404 });
+      }
+      try {
+        const raw = (await request.json()) as {
+          design_preferences?: PortfolioCvDesignPreferences | null;
+        };
+        const rawDp = raw.design_preferences;
+        const design_preferences: PortfolioCvDesignPreferences =
+          rawDp != null && typeof rawDp === 'object'
+            ? {
+                layout: String(rawDp.layout ?? ''),
+                color_theme: String(rawDp.color_theme ?? ''),
+                density: String(rawDp.density ?? ''),
+                additional_notes: String(rawDp.additional_notes ?? ''),
+              }
+            : {
+                layout: '',
+                color_theme: '',
+                density: '',
+                additional_notes: '',
+              };
+        const prev = cvStore[idx];
+        const now = new Date().toISOString();
+        const promptSuffix = [
+          '',
+          '---',
+          '## generate-html (Mock)',
+          `- layout: ${design_preferences.layout || '(없음)'}`,
+          `- color_theme: ${design_preferences.color_theme || '(없음)'}`,
+          `- density: ${design_preferences.density || '(없음)'}`,
+          design_preferences.additional_notes.trim()
+            ? `- 추가: ${design_preferences.additional_notes.trim().slice(0, 200)}`
+            : '',
+        ]
+          .filter(Boolean)
+          .join('\n');
+        const next: PortfolioCvDetail = {
+          ...prev,
+          design_preferences,
+          prompt: `${prev.prompt.trim()}\n${promptSuffix}`,
+          html_content:
+            '<!DOCTYPE html><html lang="ko"><head><meta charset="utf-8"/><title>Mock CV</title></head><body><main><p>Mock <code>generate-html</code> 응답 HTML입니다. 레이아웃: ' +
+            (design_preferences.layout || '-') +
+            '</p></main></body></html>',
+          model_used: 'gpt-4o-mini (mock)',
+          tokens_used: 1280,
+          last_generated_at: now,
+          updated_at: now,
+        };
+        cvStore[idx] = next;
+        return HttpResponse.json({ ...next }, { status: 200 });
+      } catch {
+        return new HttpResponse(null, { status: 400 });
+      }
+    },
+  ),
+
   http.delete(BASE_URL + `${ENDPOINT.PORTFOLIO_CV}/:id`, ({ params }) => {
     const id = Number(params.id);
     const idx = cvStore.findIndex(c => c.id === id);
@@ -503,6 +567,38 @@ export const PortfolioHandlers = [
       const m = body.selected_mileage_ids ?? [];
       const a = body.selected_activity_ids ?? [];
       const r = body.selected_repo_ids ?? [];
+      const rawDp = body.design_preferences;
+      const hasDesignPrefsObject = rawDp != null && typeof rawDp === 'object';
+      const storedDesignPreferences: PortfolioCvDetail['design_preferences'] =
+        hasDesignPrefsObject
+          ? {
+              layout: String((rawDp as { layout?: unknown }).layout ?? ''),
+              color_theme: String((rawDp as { color_theme?: unknown }).color_theme ?? ''),
+              density: String((rawDp as { density?: unknown }).density ?? ''),
+              additional_notes: String(
+                (rawDp as { additional_notes?: unknown }).additional_notes ?? '',
+              ),
+            }
+          : {
+              layout: '',
+              color_theme: '',
+              density: '',
+              additional_notes: '',
+            };
+      const designPrefLines: string[] = [];
+      if (hasDesignPrefsObject) {
+        const d = storedDesignPreferences;
+        if (d.layout.trim()) designPrefLines.push(`- 레이아웃: ${d.layout.trim()}`);
+        if (d.color_theme.trim()) designPrefLines.push(`- 색상 테마: ${d.color_theme.trim()}`);
+        if (d.density.trim()) designPrefLines.push(`- 분량·밀도: ${d.density.trim()}`);
+        if (d.additional_notes.trim()) {
+          designPrefLines.push(`- 추가 메모: ${d.additional_notes.trim()}`);
+        }
+      }
+      const designPrefBlock =
+        designPrefLines.length > 0
+          ? ['', '## [design_preferences] (Mock)', ...designPrefLines, ''].join('\n')
+          : '';
       const prompt = [
         '# 맞춤 CV 프롬프트 (Mock)',
         '',
@@ -518,6 +614,7 @@ export const PortfolioHandlers = [
         job ? job.slice(0, 600) + (job.length > 600 ? '…' : '') : '(미입력)',
         '',
         notes ? `## 추가 요청\n${notes}\n` : '',
+        designPrefBlock,
         '## 포함한 포트폴리오 항목 (선택 ID)',
         `- 마일리지: ${JSON.stringify(m)}`,
         `- 활동: ${JSON.stringify(a)}`,
@@ -536,12 +633,7 @@ export const PortfolioHandlers = [
         job_posting: job,
         target_position: pos,
         additional_notes: notes,
-        design_preferences: {
-          layout: '',
-          color_theme: '',
-          density: '',
-          additional_notes: '',
-        },
+        design_preferences: storedDesignPreferences,
         mode,
         prompt,
         html_content: '',

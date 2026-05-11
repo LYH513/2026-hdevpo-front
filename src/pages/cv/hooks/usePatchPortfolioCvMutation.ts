@@ -123,6 +123,19 @@ function mergeDetailFromPatchResponse(
     patch.selected_activity_ids = readIdArray(o.selected_activity_ids);
   }
 
+  if (o.model_used != null) {
+    const s = String(o.model_used).trim();
+    if (s) patch.model_used = s;
+  }
+  if (typeof o.tokens_used === 'number' && Number.isFinite(o.tokens_used)) {
+    patch.tokens_used = o.tokens_used;
+  } else if (typeof o.tokens_used === 'string' && o.tokens_used.trim() !== '') {
+    const n = Number(o.tokens_used);
+    if (!Number.isNaN(n)) patch.tokens_used = n;
+  }
+  const lga = str(o.last_generated_at, o.lastGeneratedAt);
+  if (lga !== undefined) patch.last_generated_at = lga;
+
   return patch;
 }
 
