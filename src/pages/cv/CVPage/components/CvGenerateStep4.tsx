@@ -2,21 +2,44 @@ import { Button, Flex, Heading, Text } from '@/components';
 import { hideScrollbar } from '@/styles/hideScrollbar';
 import { palette } from '@/styles/palette';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import CloseIcon from '@mui/icons-material/Close';
+import OpenInFullIcon from '@mui/icons-material/OpenInFull';
 import SaveOutlinedIcon from '@mui/icons-material/SaveOutlined';
 import { formatDateOnly } from '@/pages/portfolio/utils/date';
 import BusinessIcon from '@mui/icons-material/Business';
 import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
 import ContentPasteIcon from '@mui/icons-material/ContentPaste';
 import WorkOutlineIcon from '@mui/icons-material/WorkOutline';
-import { TextField, useTheme } from '@mui/material';
+import { Dialog, DialogContent, IconButton, TextField, useTheme } from '@mui/material';
 import { styled } from '@mui/material/styles';
-import { useMemo } from 'react';
+import { useCallback, useMemo, useState, type FunctionComponent, type SVGProps } from 'react';
 
+import { CV_PREVIEW_IFRAME_SANDBOX } from '../../constants/cvPreviewIframeSandbox';
 import { buildCvPreviewSrcDoc } from '../../utils/buildCvPreviewSrcDoc';
 import { extractCompanyLineFromJobPosting } from '../../utils/extractCompanyLineFromJobPosting';
 import { sanitizeCvHtml } from '../../utils/sanitizeCvHtml';
 import { CvGeneratePageS as WizS } from '../cvGeneratePageStyles';
 import { HTML_PANE_HEIGHT } from '../../constants/cvGeneratePaneConstants';
+
+/** CV 상세 미리보기「크게 보기」와 동일한 모달 크기 */
+const HTML_EXPAND_MODAL_PAPER_SX = {
+  borderRadius: '0.75rem',
+  border: `1px solid ${palette.grey200}`,
+  boxShadow: '0 4px 24px rgba(83, 127, 241, 0.12)',
+  width: '70vw',
+  maxWidth: '70vw',
+  minHeight: '80vh',
+  maxHeight: '90vh',
+  overflow: 'hidden',
+  display: 'flex',
+  flexDirection: 'column',
+  margin: '1rem',
+  boxSizing: 'border-box',
+} as const;
+
+const OpenInFullIconWrap: FunctionComponent<SVGProps<SVGSVGElement>> = () => (
+  <OpenInFullIcon sx={{ fontSize: 18 }} />
+);
 
 export interface CvGenerateStep4Props {
   htmlInput: string;
@@ -40,6 +63,9 @@ const CvGenerateStep4 = ({
   saveDisabled = false,
 }: CvGenerateStep4Props) => {
   const theme = useTheme();
+  const [htmlExpandOpen, setHtmlExpandOpen] = useState(false);
+  const closeHtmlExpand = useCallback(() => setHtmlExpandOpen(false), []);
+
   const sanitizedHtml = useMemo(() => sanitizeCvHtml(htmlInput), [htmlInput]);
   const previewSrcDoc = useMemo(
     () => buildCvPreviewSrcDoc(sanitizedHtml),
@@ -139,22 +165,44 @@ const CvGenerateStep4 = ({
           </S.HtmlEditorPane>
         </Flex.Column>
         <Flex.Column gap="0.5rem" style={{ flex: '1 1 0', minWidth: 0, width: '100%' }}>
-          <Text
-            margin="0"
-            style={{
-              ...theme.typography.caption,
-              fontWeight: 700,
-              color: theme.palette.text.secondary,
-            }}
+          <Flex.Row
+            align="center"
+            justify="space-between"
+            gap="0.75rem"
+            wrap="wrap"
+            width="100%"
+            style={{ minWidth: 0 }}
           >
-            미리보기 (정제 후)
-          </Text>
+            <Text
+              margin="0"
+              style={{
+                ...theme.typography.caption,
+                fontWeight: 700,
+                color: theme.palette.text.secondary,
+              }}
+            >
+              미리보기 (정제 후)
+            </Text>
+            <Flex.Row align="center" gap="0.5rem" wrap="wrap" style={{ flexShrink: 0 }}>
+              <Button
+                label="크게 보기"
+                variant="outlined"
+                color="blue"
+                size="small"
+                icon={OpenInFullIconWrap}
+                iconPosition="start"
+                onClick={() => setHtmlExpandOpen(true)}
+                disabled={!sanitizedHtml.trim()}
+                aria-label="HTML 미리보기 크게 보기"
+              />
+            </Flex.Row>
+          </Flex.Row>
           <S.PreviewPane>
             {sanitizedHtml.trim() ? (
               <S.PreviewIframe
                 title="CV HTML 미리보기"
                 srcDoc={previewSrcDoc}
-                sandbox=""
+                sandbox={CV_PREVIEW_IFRAME_SANDBOX}
                 referrerPolicy="no-referrer"
               />
             ) : (
@@ -205,6 +253,65 @@ const CvGenerateStep4 = ({
           onClick={onSave}
         />
       </Flex.Row>
+
+      <Dialog
+        open={htmlExpandOpen}
+        onClose={closeHtmlExpand}
+        maxWidth={false}
+        fullWidth
+        aria-labelledby="cv-generate-step4-html-expand-title"
+        PaperProps={{
+          sx: HTML_EXPAND_MODAL_PAPER_SX,
+        }}
+      >
+        <DialogContent
+          sx={{
+            p: '1rem 1.25rem 1.25rem',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '0.75rem',
+            overflow: 'hidden',
+            flex: '1 1 auto',
+            minHeight: 0,
+          }}
+        >
+          <Flex.Row align="center" justify="space-between" gap="0.75rem" wrap="wrap" width="100%">
+            <Text
+              id="cv-generate-step4-html-expand-title"
+              as="h3"
+              margin="0"
+              bold
+              color={palette.nearBlack}
+              style={{ fontSize: '1rem', lineHeight: 1.4 }}
+            >
+              미리보기 (정제 후)
+            </Text>
+            <IconButton
+              type="button"
+              onClick={closeHtmlExpand}
+              aria-label="닫기"
+              size="small"
+              sx={{
+                color: palette.grey600,
+                flexShrink: 0,
+                backgroundColor: palette.white,
+                border: `1px solid ${palette.grey200}`,
+                '&:hover': { backgroundColor: palette.grey100 },
+              }}
+            >
+              <CloseIcon />
+            </IconButton>
+          </Flex.Row>
+          <S.ModalIframeShell>
+            <iframe
+              title="HTML 크게 보기"
+              srcDoc={previewSrcDoc}
+              sandbox={CV_PREVIEW_IFRAME_SANDBOX}
+              referrerPolicy="no-referrer"
+            />
+          </S.ModalIframeShell>
+        </DialogContent>
+      </Dialog>
     </Flex.Column>
   );
 };
@@ -341,5 +448,23 @@ const S = {
     border: none;
     background-color: ${palette.white};
     box-sizing: border-box;
+  `,
+  ModalIframeShell: styled('div')`
+    flex: 1 1 auto;
+    min-height: 0;
+    border-radius: 0.5rem;
+    border: 1px solid ${palette.grey200};
+    overflow: hidden;
+    background-color: ${palette.white};
+    display: flex;
+    flex-direction: column;
+    box-sizing: border-box;
+    & > iframe {
+      display: block;
+      flex: 1 1 auto;
+      width: 100%;
+      min-height: 0;
+      border: none;
+    }
   `,
 };
