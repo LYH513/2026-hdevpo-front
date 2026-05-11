@@ -71,6 +71,22 @@ function notesToPills(notes: string): string[] {
     .filter(Boolean);
 }
 
+/** 크게 보기 모달: 가로 70vw, 세로 80vh ~ 90vh */
+const CV_EXPAND_MODAL_PAPER_SX = {
+  borderRadius: '0.75rem',
+  border: `1px solid ${palette.grey200}`,
+  boxShadow: '0 4px 24px rgba(83, 127, 241, 0.12)',
+  width: '70vw',
+  maxWidth: '70vw',
+  minHeight: '80vh',
+  maxHeight: '90vh',
+  overflow: 'hidden',
+  display: 'flex',
+  flexDirection: 'column',
+  margin: '1rem',
+  boxSizing: 'border-box',
+} as const;
+
 const CvPreviewContent = ({
   active,
   layout = 'modal',
@@ -616,18 +632,11 @@ const CvPreviewContent = ({
     <Dialog
       open={expandPromptOpen}
       onClose={() => setExpandPromptOpen(false)}
-      maxWidth="md"
+      maxWidth={false}
       fullWidth
       aria-labelledby="cv-expand-prompt-title"
       PaperProps={{
-        sx: {
-          borderRadius: '0.75rem',
-          border: `1px solid ${palette.grey200}`,
-          boxShadow: '0 4px 24px rgba(83, 127, 241, 0.12)',
-          maxHeight: 'min(90vh, 52rem)',
-          display: 'flex',
-          flexDirection: 'column',
-        },
+        sx: CV_EXPAND_MODAL_PAPER_SX,
       }}
     >
       <DialogContent
@@ -675,18 +684,11 @@ const CvPreviewContent = ({
     <Dialog
       open={expandHtmlOpen}
       onClose={() => setExpandHtmlOpen(false)}
-      maxWidth="lg"
+      maxWidth={false}
       fullWidth
       aria-labelledby="cv-expand-html-title"
       PaperProps={{
-        sx: {
-          borderRadius: '0.75rem',
-          border: `1px solid ${palette.grey200}`,
-          boxShadow: '0 4px 24px rgba(83, 127, 241, 0.12)',
-          maxHeight: 'min(92vh, 56rem)',
-          display: 'flex',
-          flexDirection: 'column',
-        },
+        sx: CV_EXPAND_MODAL_PAPER_SX,
       }}
     >
       <DialogContent
@@ -834,7 +836,6 @@ const S = {
     margin: 0;
     flex: 1 1 auto;
     min-height: 0;
-    max-height: min(72vh, 42rem);
     overflow: auto;
     padding: 0.85rem 1rem;
     font-size: 0.8125rem;
@@ -851,7 +852,6 @@ const S = {
   ModalIframeShell: styled('div')`
     flex: 1 1 auto;
     min-height: 0;
-    max-height: min(72vh, 42rem);
     border-radius: 0.5rem;
     border: 1px solid ${palette.grey200};
     overflow: hidden;
@@ -863,7 +863,7 @@ const S = {
       display: block;
       flex: 1 1 auto;
       width: 100%;
-      min-height: min(58vh, 28rem);
+      min-height: 0;
       border: none;
     }
   `,
