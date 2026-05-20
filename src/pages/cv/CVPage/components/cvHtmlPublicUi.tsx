@@ -39,7 +39,7 @@ const OpenInNewMedium: FunctionComponent<SVGProps<SVGSVGElement>> = () => (
 export type CvHtmlPublicLinkButtonProps = {
   onClick: () => void;
   disabled?: boolean;
-  /** 기본 `링크 열기` */
+  /** 기본 `포토폴리오 보기` */
   label?: string;
 };
 

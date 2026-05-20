@@ -39,6 +39,8 @@ export interface CvPreviewContentProps {
   /** false이면 편집·미리보기 토글 등 일시 상태를 초기화합니다 */
   active: boolean;
   layout?: CvPreviewContentLayout;
+  /** panel 레이아웃(데스크톱 관리 화면)에서는 기본 false */
+  showCloseButton?: boolean;
   onClose: () => void;
   closeAriaLabel?: string;
   data: PortfolioCvDetail | undefined;
@@ -118,6 +120,7 @@ const CV_EXPAND_MODAL_PAPER_SX = {
 const CvPreviewContent = ({
   active,
   layout = 'modal',
+  showCloseButton = layout !== 'panel',
   onClose,
   closeAriaLabel = '닫기',
   data,
@@ -414,21 +417,23 @@ const CvPreviewContent = ({
                 />
               )
             ) : null}
-            <IconButton
-              type="button"
-              onClick={onClose}
-              aria-label={closeAriaLabel}
-              size="small"
-              sx={{
-                color: palette.grey600,
-                flexShrink: 0,
-                backgroundColor: palette.white,
-                border: `1px solid ${palette.grey200}`,
-                '&:hover': { backgroundColor: palette.grey100 },
-              }}
-            >
-              <CloseIcon />
-            </IconButton>
+            {showCloseButton ? (
+              <IconButton
+                type="button"
+                onClick={onClose}
+                aria-label={closeAriaLabel}
+                size="small"
+                sx={{
+                  color: palette.grey600,
+                  flexShrink: 0,
+                  backgroundColor: palette.white,
+                  border: `1px solid ${palette.grey200}`,
+                  '&:hover': { backgroundColor: palette.grey100 },
+                }}
+              >
+                <CloseIcon />
+              </IconButton>
+            ) : null}
           </Flex.Row>
         </Flex.Row>
 

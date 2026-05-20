@@ -14,6 +14,7 @@ import { styled } from '@mui/material/styles';
 import { useQuery } from '@tanstack/react-query';
 import {
   useCallback,
+  useEffect,
   useState,
   type FunctionComponent,
   type KeyboardEvent,
@@ -80,6 +81,19 @@ const CvManagementPanel = () => {
   });
 
   const cvs = listQuery.data?.cvs ?? [];
+
+  /** 목록 로드 시 상단(첫) 항목 자동 선택 · 삭제 후에도 유효한 선택 유지 */
+  useEffect(() => {
+    if (listQuery.isPending || listQuery.isError) return;
+    if (cvs.length === 0) {
+      setPreviewId(null);
+      return;
+    }
+    setPreviewId(prev => {
+      if (prev != null && cvs.some(c => c.id === prev)) return prev;
+      return cvs[0].id;
+    });
+  }, [cvs, listQuery.isPending, listQuery.isError]);
 
   const detailQuery = useQuery({
     queryKey: [QUERY_KEYS.portfolioCv, 'detail', previewId] as const,
@@ -235,8 +249,9 @@ const CvManagementPanel = () => {
               <CvPreviewContent
                 active={hasPreviewSelection}
                 layout="panel"
+                showCloseButton={isMobile}
                 onClose={closePreview}
-                closeAriaLabel={isMobile ? '목록으로 돌아가기' : '선택 해제'}
+                closeAriaLabel="목록으로 돌아가기"
                 data={detailQuery.data}
                 isPending={detailQuery.isPending}
                 isError={detailQuery.isError}
@@ -452,7 +467,7 @@ function CvHistoryCard({
         >
           {isHtmlPublic ? (
             <Button
-              label="링크 열기"
+              label="포토폴리오 보기"
               variant="outlined"
               color="blue"
               size={btnSize}
