@@ -144,9 +144,9 @@ export function CvHtmlPublicSettingsRow({
         {title ? <S.SettingsTitle>{title}</S.SettingsTitle> : null}
         <CvHtmlPublicSwitchControl {...switchProps} />
         {guide ? (
-          <Text margin="0" color={palette.grey600} style={{ fontSize: '0.75rem', lineHeight: 1.55 }}>
+          <S.SettingsGuide as="p" margin="0" color={palette.grey600}>
             {guide}
-          </Text>
+          </S.SettingsGuide>
         ) : null}
       </S.LeftColumn>
       <S.RightColumn>
@@ -213,31 +213,38 @@ export function CvHtmlPreviewThumb({
 
 const S = {
   SettingsRow: styled('div')`
-    display: flex;
-    flex-direction: row;
-    align-items: stretch;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: start;
     gap: 0.75rem;
     width: 100%;
     min-width: 0;
     box-sizing: border-box;
     @media (max-width: 480px) {
-      flex-direction: column;
-      align-items: flex-start;
+      grid-template-columns: minmax(0, 1fr);
     }
   `,
   LeftColumn: styled('div')`
     display: flex;
-    flex: 1 1 auto;
     flex-direction: column;
     gap: 0.5rem;
     min-width: 0;
+    max-width: 100%;
+  `,
+  SettingsGuide: styled(Text)`
+    font-size: 0.75rem;
+    line-height: 1.65;
+    overflow-wrap: anywhere;
+    word-break: keep-all;
+    max-width: 100%;
   `,
   RightColumn: styled('div')`
     display: flex;
     flex: 0 0 auto;
     flex-direction: column;
-    align-self: stretch;
+    align-self: start;
     min-height: 0;
+    min-width: 0;
   `,
   SettingsTitle: styled('span')`
     display: block;
@@ -257,6 +264,7 @@ const S = {
     gap: 0.5rem 0.75rem;
     width: 100%;
     max-width: 100%;
+    min-width: 0;
     box-sizing: border-box;
     padding: 0.55rem 0.75rem;
     border-radius: 0.75rem;
@@ -312,11 +320,15 @@ const S = {
     ${({ $matchRowHeight }) =>
       $matchRowHeight
         ? `
-    height: 100%;
-    width: auto;
+    /* stretch + 정사각형 썸네일이 행 높이만큼 가로로 커지며 본문을 압축하는 것을 막음 */
+    align-self: flex-start;
+    width: min(100%, 10rem);
+    max-width: min(10rem, 36vw);
+    height: auto;
     aspect-ratio: 1;
     min-width: ${THUMB_PX}px;
     min-height: ${THUMB_PX}px;
+    max-height: min(10rem, 50vh);
     `
         : `
     width: ${THUMB_PX}px;

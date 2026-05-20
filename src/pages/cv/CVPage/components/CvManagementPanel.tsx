@@ -18,9 +18,11 @@ import {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type FunctionComponent,
   type KeyboardEvent,
+  type PointerEvent as ReactPointerEvent,
   type SVGProps,
 } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -72,9 +74,48 @@ function getCvModeChip(mode: string): { label: string; variant: 'cv' | 'archive'
   return null;
 }
 
+/** 목록이 차지하는 비율(0~1), 기본 5:5 */
+const CV_LIST_SPLIT_FRACTION_STORAGE_KEY = 'cv-management-list-split-fraction';
+/** 예전 px 저장 — 최초 1회만 비율로 이관 */
+const CV_LIST_WIDTH_LEGACY_STORAGE_KEY = 'cv-management-list-width';
+const RESIZE_HANDLE_PX = 8;
+const DEFAULT_LIST_SPLIT_FRACTION = 0.5;
+const MIN_LIST_WIDTH = 260;
+const MIN_PREVIEW_WIDTH = 320;
+
+function readStoredListSplitFraction(): number {
+  try {
+    const raw = localStorage.getItem(CV_LIST_SPLIT_FRACTION_STORAGE_KEY);
+    const n = Number(raw);
+    if (Number.isFinite(n) && n > 0.05 && n < 0.95) return n;
+  } catch {
+    /* ignore */
+  }
+  return DEFAULT_LIST_SPLIT_FRACTION;
+}
+
+function listWidthBoundsPx(totalWidth: number): { minW: number; maxW: number; usable: number } {
+  const usable = totalWidth - RESIZE_HANDLE_PX;
+  const maxW = Math.max(0, usable - MIN_PREVIEW_WIDTH);
+  const minW = Math.min(MIN_LIST_WIDTH, maxW);
+  return { minW, maxW, usable };
+}
+
+function clampListWidthPx(next: number, totalWidth: number): number {
+  const { minW, maxW } = listWidthBoundsPx(totalWidth);
+  return Math.round(Math.min(maxW, Math.max(minW, next)));
+}
+
 const CvManagementPanel = () => {
   const navigate = useNavigate();
   const isMobile = useMediaQuery(MAX_RESPONSIVE_WIDTH);
+  const splitRef = useRef<HTMLDivElement>(null);
+  const splitLegacyMigratedRef = useRef(false);
+  const resizeDraftWidthRef = useRef<number | null>(null);
+  const [containerWidth, setContainerWidth] = useState(0);
+  const [listSplitFraction, setListSplitFraction] = useState(readStoredListSplitFraction);
+  const [resizeDraftListWidth, setResizeDraftListWidth] = useState<number | null>(null);
+  const [isResizing, setIsResizing] = useState(false);
   const [previewId, setPreviewId] = useState<number | null>(null);
   const [deleteConfirmId, setDeleteConfirmId] = useState<number | null>(null);
   const [listSort, setListSort] = useState<PortfolioCvListSort>('newest');
@@ -169,6 +210,131 @@ const CvManagementPanel = () => {
   /** 모바일: 카드 선택 시에만 패널. 데스크톱: 항상 오른쪽 슬롯(미선택 시 빈 상태). */
   const showPreviewColumn = !isMobile || hasPreviewSelection;
   const showListColumn = !isMobile || !hasPreviewSelection;
+  const showResizeHandle = !isMobile && showListColumn && showPreviewColumn;
+
+  const listWidthPx = useMemo(() => {
+    if (isMobile) return null;
+    if (containerWidth <= 0) return null;
+    const { usable } = listWidthBoundsPx(containerWidth);
+    if (usable <= 0) return null;
+    if (resizeDraftListWidth != null) {
+      return clampListWidthPx(resizeDraftListWidth, containerWidth);
+    }
+    return clampListWidthPx(Math.round(usable * listSplitFraction), containerWidth);
+  }, [isMobile, containerWidth, resizeDraftListWidth, listSplitFraction]);
+
+  const handleResizePointerDown = useCallback(
+    (e: ReactPointerEvent<HTMLButtonElement>) => {
+      e.preventDefault();
+      const el = splitRef.current;
+      if (!el) return;
+      const rect = el.getBoundingClientRect();
+      const w = clampListWidthPx(e.clientX - rect.left, rect.width);
+      resizeDraftWidthRef.current = w;
+      setResizeDraftListWidth(w);
+      setIsResizing(true);
+      e.currentTarget.setPointerCapture(e.pointerId);
+    },
+    [],
+  );
+
+  useEffect(() => {
+    if (!isResizing) return;
+
+    const onMove = (e: PointerEvent) => {
+      const el = splitRef.current;
+      if (!el) return;
+      const rect = el.getBoundingClientRect();
+      const w = clampListWidthPx(e.clientX - rect.left, rect.width);
+      resizeDraftWidthRef.current = w;
+      setResizeDraftListWidth(w);
+    };
+
+    const onUp = () => {
+      setIsResizing(false);
+      const el = splitRef.current;
+      const draft = resizeDraftWidthRef.current;
+      resizeDraftWidthRef.current = null;
+      setResizeDraftListWidth(null);
+      if (el && draft != null) {
+        const total = el.getBoundingClientRect().width;
+        const { usable } = listWidthBoundsPx(total);
+        if (usable > 0) {
+          const w = clampListWidthPx(draft, total);
+          const nextFrac = w / usable;
+          setListSplitFraction(nextFrac);
+          try {
+            localStorage.setItem(CV_LIST_SPLIT_FRACTION_STORAGE_KEY, String(nextFrac));
+          } catch {
+            /* ignore */
+          }
+        }
+      }
+    };
+
+    window.addEventListener('pointermove', onMove);
+    window.addEventListener('pointerup', onUp);
+    window.addEventListener('pointercancel', onUp);
+    return () => {
+      window.removeEventListener('pointermove', onMove);
+      window.removeEventListener('pointerup', onUp);
+      window.removeEventListener('pointercancel', onUp);
+    };
+  }, [isResizing]);
+
+  useEffect(() => {
+    if (isMobile || !splitRef.current) return;
+    const el = splitRef.current;
+    const ro = new ResizeObserver(() => {
+      const total = el.getBoundingClientRect().width;
+      if (total <= 0) return;
+      setContainerWidth(total);
+
+      if (!splitLegacyMigratedRef.current) {
+        splitLegacyMigratedRef.current = true;
+        try {
+          const hasFrac = localStorage.getItem(CV_LIST_SPLIT_FRACTION_STORAGE_KEY);
+          const legacy = localStorage.getItem(CV_LIST_WIDTH_LEGACY_STORAGE_KEY);
+          if (legacy != null) {
+            if (!hasFrac) {
+              const px = Number(legacy);
+              if (Number.isFinite(px) && px > 0) {
+                const { usable } = listWidthBoundsPx(total);
+                if (usable > 0) {
+                  const w = clampListWidthPx(px, total);
+                  const f = w / usable;
+                  setListSplitFraction(f);
+                  localStorage.setItem(CV_LIST_SPLIT_FRACTION_STORAGE_KEY, String(f));
+                }
+              }
+            }
+            localStorage.removeItem(CV_LIST_WIDTH_LEGACY_STORAGE_KEY);
+          }
+        } catch {
+          /* ignore */
+        }
+      }
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [isMobile]);
+
+  useEffect(() => {
+    if (isMobile || containerWidth <= 0 || isResizing) return;
+    const { usable, minW, maxW } = listWidthBoundsPx(containerWidth);
+    if (usable <= 0) return;
+    const curW = usable * listSplitFraction;
+    const clampedW = Math.min(maxW, Math.max(minW, curW));
+    const nextF = clampedW / usable;
+    if (Math.abs(nextF - listSplitFraction) > 0.0005) {
+      setListSplitFraction(nextF);
+      try {
+        localStorage.setItem(CV_LIST_SPLIT_FRACTION_STORAGE_KEY, String(nextF));
+      } catch {
+        /* ignore */
+      }
+    }
+  }, [containerWidth, isMobile, isResizing, listSplitFraction]);
 
   return (
     <S.Root
@@ -200,21 +366,29 @@ const CvManagementPanel = () => {
         </S.ProgressWrap>
       ) : null}
 
-      <S.SplitRow
-        align="stretch"
-        gap="1.25rem"
-        width="100%"
-        wrap="nowrap"
-        style={{ flex: 1, minHeight: 0, minWidth: 0 }}
-      >
+      <S.SplitShell ref={splitRef}>
+        <S.SplitRow
+          $isResizing={isResizing}
+          align="stretch"
+          gap={isMobile ? '1.25rem' : '0'}
+          width="100%"
+          wrap="nowrap"
+          style={{ flex: 1, minHeight: 0, minWidth: 0 }}
+        >
         {showListColumn ? (
           <S.ListColumn
             direction="column"
             gap="0"
             width="100%"
             style={{
-              flex: !isMobile ? '1 1 0' : '1 1 100%',
-              minWidth: 0,
+              flex: isMobile
+                ? '1 1 100%'
+                : listWidthPx != null
+                  ? `0 0 ${listWidthPx}px`
+                  : '1 1 0',
+              width: isMobile ? '100%' : listWidthPx != null ? listWidthPx : undefined,
+              maxWidth: isMobile ? '100%' : listWidthPx != null ? listWidthPx : undefined,
+              minWidth: isMobile ? 0 : MIN_LIST_WIDTH,
               minHeight: 0,
               overflow: 'hidden',
             }}
@@ -281,8 +455,23 @@ const CvManagementPanel = () => {
           </S.ListColumn>
         ) : null}
 
+        {showResizeHandle ? (
+          <S.ResizeHandle
+            type="button"
+            aria-label="목록·미리보기 영역 너비 조절"
+            aria-orientation="vertical"
+            $active={isResizing}
+            onPointerDown={handleResizePointerDown}
+          />
+        ) : null}
+
         {showPreviewColumn ? (
-          <S.PreviewColumn $isMobile={isMobile} direction="column" width="100%">
+          <S.PreviewColumn
+            $isMobile={isMobile}
+            direction="column"
+            width="100%"
+            style={isMobile ? undefined : { flex: '1 1 0', minWidth: MIN_PREVIEW_WIDTH }}
+          >
             {hasPreviewSelection ? (
               <CvPreviewContent
                 active={hasPreviewSelection}
@@ -321,6 +510,7 @@ const CvManagementPanel = () => {
           </S.PreviewColumn>
         ) : null}
       </S.SplitRow>
+      </S.SplitShell>
 
       <Dialog
         open={deleteConfirmId != null}
@@ -563,8 +753,55 @@ const S = {
     flex: 1 1 16rem;
     min-width: 0;
   `,
-  SplitRow: styled(Flex.Row)`
+  SplitShell: styled('div')`
+    display: flex;
+    flex: 1 1 auto;
     min-width: 0;
+    min-height: 0;
+    width: 100%;
+  `,
+  SplitRow: styled(Flex.Row, {
+    shouldForwardProp: p => p !== '$isResizing',
+  })<{ $isResizing?: boolean }>`
+    min-width: 0;
+    min-height: 0;
+    flex: 1 1 auto;
+    ${({ $isResizing }) =>
+      $isResizing ? 'cursor: col-resize; user-select: none;' : ''}
+  `,
+  ResizeHandle: styled('button', {
+    shouldForwardProp: p => p !== '$active',
+  })<{ $active?: boolean }>`
+    display: flex;
+    flex: 0 0 ${RESIZE_HANDLE_PX}px;
+    align-items: center;
+    justify-content: center;
+    width: ${RESIZE_HANDLE_PX}px;
+    min-width: ${RESIZE_HANDLE_PX}px;
+    margin: 0;
+    padding: 0;
+    border: none;
+    background-color: ${({ $active }) => ($active ? palette.blue300 : 'transparent')};
+    cursor: col-resize;
+    box-sizing: border-box;
+    touch-action: none;
+    transition: background-color 0.15s ease;
+    &:hover {
+      background-color: ${palette.blue300};
+    }
+    &:focus-visible {
+      outline: 2px solid ${palette.blue500};
+      outline-offset: -1px;
+    }
+    &::after {
+      content: '';
+      display: block;
+      width: 2px;
+      height: 2.75rem;
+      border-radius: 999px;
+      background-color: ${({ $active }) => ($active ? palette.blue500 : palette.grey300)};
+      transition: background-color 0.15s ease;
+    }
   `,
   ListColumn: styled(Flex.Column)`
     min-width: 0;

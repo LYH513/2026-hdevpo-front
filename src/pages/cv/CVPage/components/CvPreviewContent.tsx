@@ -487,7 +487,7 @@ const CvPreviewContent = ({
               {!isEditing ? (
                 <CvHtmlPublicSettingsRow
                   title="HTML 공개 설정"
-                  guide="스위치로 HTML 공개 여부를 바꿀 수 있습니다. 공개 시 링크만으로 로그인 없이 미리보기가 가능합니다."
+                  guide="공개 시 링크만으로 로그인 없이 미리보기가 가능합니다."
                   isPublic={Boolean(data.is_public)}
                   onPublicChange={handleTogglePublic}
                   disabled={publicToggleDisabled}
@@ -534,35 +534,46 @@ const CvPreviewContent = ({
             </S.Section>
 
             <S.Section direction="column" gap="0.5rem">
-              <Flex.Row align="center" justify="space-between" gap="0.75rem" wrap="wrap">
+              <Flex.Row
+                align="center"
+                justify="space-between"
+                gap="0.75rem"
+                wrap="nowrap"
+                width="100%"
+                style={{ minWidth: 0 }}
+              >
                 <S.SectionTitle>프롬프트</S.SectionTitle>
-                <Flex.Row
-                  align="center"
-                  gap="0.5rem"
-                  wrap="wrap"
-                  style={{ flexShrink: 0 }}
-                >
-                  <Button
-                    label="크게 보기"
-                    variant="outlined"
-                    color="blue"
-                    size="small"
-                    icon={OpenInFullIconWrap}
-                    iconPosition="start"
-                    onClick={() => setExpandPromptOpen(true)}
-                    disabled={!data.prompt?.trim()}
-                  />
-                  <Button
-                    label="복사하기"
-                    variant="outlined"
-                    color="blue"
-                    size="small"
-                    icon={CopyIconWrap}
-                    iconPosition="start"
-                    onClick={handleCopyPrompt}
-                    disabled={!data.prompt?.trim()}
-                  />
-                </Flex.Row>
+                {!isEditing ? (
+                  <S.InlineActionsScroll>
+                    <Flex.Row
+                      align="center"
+                      gap="0.5rem"
+                      wrap="nowrap"
+                      style={{ flexShrink: 0, width: 'max-content' }}
+                    >
+                      <Button
+                        label="크게 보기"
+                        variant="outlined"
+                        color="blue"
+                        size="small"
+                        icon={OpenInFullIconWrap}
+                        iconPosition="start"
+                        onClick={() => setExpandPromptOpen(true)}
+                        disabled={!data.prompt?.trim()}
+                      />
+                      <Button
+                        label="복사하기"
+                        variant="outlined"
+                        color="blue"
+                        size="small"
+                        icon={CopyIconWrap}
+                        iconPosition="start"
+                        onClick={handleCopyPrompt}
+                        disabled={!data.prompt?.trim()}
+                      />
+                    </Flex.Row>
+                  </S.InlineActionsScroll>
+                ) : null}
               </Flex.Row>
               {designPrefsSummary ? (
                 <Flex.Column gap="0.35rem" width="100%" style={{ minWidth: 0 }}>
@@ -617,43 +628,57 @@ const CvPreviewContent = ({
             </S.Section>
 
             <S.Section direction="column" gap="0.65rem">
-              <Flex.Row align="center" justify="space-between" gap="0.75rem" wrap="wrap" width="100%">
+              <Flex.Row
+                align="center"
+                justify="space-between"
+                gap="0.75rem"
+                wrap="nowrap"
+                width="100%"
+                style={{ minWidth: 0 }}
+              >
                 <S.SectionTitle>AI 생성 결과 (HTML)</S.SectionTitle>
                 {!isEditing ? (
-                  <Flex.Row align="center" gap="0.5rem" wrap="wrap" style={{ flexShrink: 0 }}>
-                    <Button
-                      label="크게 보기"
-                      variant="outlined"
-                      color="blue"
-                      size="small"
-                      icon={OpenInFullIconWrap}
-                      iconPosition="start"
-                      onClick={() => setExpandHtmlOpen(true)}
-                      disabled={!htmlRaw.trim() || pdfDownloading}
-                    />
-                    <Button
-                      label="PDF 다운로드"
-                      variant="outlined"
-                      color="blue"
-                      size="small"
-                      icon={PictureAsPdfIconWrap}
-                      iconPosition="start"
-                      onClick={handleDownloadPdf}
-                      disabled={
-                        !htmlRaw.trim() || pdfDownloading || !data
-                      }
-                    />
-                    <Button
-                      label={showHtmlPreview ? '소스 보기' : 'HTML 미리보기'}
-                      variant="outlined"
-                      color="blue"
-                      size="small"
-                      icon={showHtmlPreview ? CodeIconWrap : HtmlIconWrap}
-                      iconPosition="start"
-                      onClick={() => setShowHtmlPreview(v => !v)}
-                      disabled={!htmlRaw.trim() || pdfDownloading}
-                    />
-                  </Flex.Row>
+                  <S.InlineActionsScroll>
+                    <Flex.Row
+                      align="center"
+                      gap="0.5rem"
+                      wrap="nowrap"
+                      style={{ flexShrink: 0, width: 'max-content' }}
+                    >
+                      <Button
+                        label="크게 보기"
+                        variant="outlined"
+                        color="blue"
+                        size="small"
+                        icon={OpenInFullIconWrap}
+                        iconPosition="start"
+                        onClick={() => setExpandHtmlOpen(true)}
+                        disabled={!htmlRaw.trim() || pdfDownloading}
+                      />
+                      <Button
+                        label="PDF 다운로드"
+                        variant="outlined"
+                        color="blue"
+                        size="small"
+                        icon={PictureAsPdfIconWrap}
+                        iconPosition="start"
+                        onClick={handleDownloadPdf}
+                        disabled={
+                          !htmlRaw.trim() || pdfDownloading || !data
+                        }
+                      />
+                      <Button
+                        label={showHtmlPreview ? '소스 보기' : 'HTML 미리보기'}
+                        variant="outlined"
+                        color="blue"
+                        size="small"
+                        icon={showHtmlPreview ? CodeIconWrap : HtmlIconWrap}
+                        iconPosition="start"
+                        onClick={() => setShowHtmlPreview(v => !v)}
+                        disabled={!htmlRaw.trim() || pdfDownloading}
+                      />
+                    </Flex.Row>
+                  </S.InlineActionsScroll>
                 ) : null}
               </Flex.Row>
               <Flex.Column gap="0.5rem" width="100%" style={{ minWidth: 0 }}>
@@ -890,6 +915,21 @@ const S = {
     font-size: 0.8125rem;
     font-weight: 700;
     color: ${palette.grey600};
+    flex-shrink: 0;
+  `,
+  InlineActionsScroll: styled('div')`
+    display: flex;
+    flex: 1 1 auto;
+    min-width: 0;
+    max-width: 100%;
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    &::-webkit-scrollbar {
+      display: none;
+    }
   `,
   BodyBox: styled('div')`
     margin: 0;
