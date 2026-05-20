@@ -214,8 +214,6 @@ const CvManagementPanel = () => {
                   item={item}
                   isSelected={previewId === item.id}
                   onSelect={() => openPreview(item.id)}
-                  onRequestDelete={() => setDeleteConfirmId(item.id)}
-                  deletePending={deletePending}
                   onOpenShareLink={() => {
                     const token = String(item.public_token ?? '').trim();
                     if (!token) return;
@@ -360,15 +358,11 @@ function CvHistoryCard({
   item,
   isSelected,
   onSelect,
-  onRequestDelete,
-  deletePending,
   onOpenShareLink,
 }: {
   item: PortfolioCvListItem;
   isSelected: boolean;
   onSelect: () => void;
-  onRequestDelete: () => void;
-  deletePending: boolean;
   onOpenShareLink: () => void;
 }) {
   const isMobile = useMediaQuery(MAX_RESPONSIVE_WIDTH);
@@ -471,19 +465,6 @@ function CvHistoryCard({
               disabled={!hasShareToken}
             />
           ) : null}
-          <Button
-            label="삭제"
-            variant="outlined"
-            color="red"
-            size={btnSize}
-            icon={DeleteOutlineIconWrap}
-            iconPosition="start"
-            onClick={e => {
-              e.stopPropagation();
-              onRequestDelete();
-            }}
-            disabled={deletePending}
-          />
         </Flex.Row>
       </Flex.Row>
 

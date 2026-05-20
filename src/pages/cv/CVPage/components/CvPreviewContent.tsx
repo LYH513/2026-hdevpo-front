@@ -388,19 +388,6 @@ const CvPreviewContent = ({
                     onClick={handleConfirmEdit}
                     disabled={patchPending}
                   />
-                </>
-              ) : (
-                <>
-                  <Button
-                    label="수정"
-                    variant="outlined"
-                    color="blue"
-                    size="medium"
-                    icon={EditIconWrap}
-                    iconPosition="start"
-                    onClick={startEdit}
-                    disabled={actionDisabled}
-                  />
                   {onRequestDelete ? (
                     <Button
                       label="삭제"
@@ -414,6 +401,17 @@ const CvPreviewContent = ({
                     />
                   ) : null}
                 </>
+              ) : (
+                <Button
+                  label="수정"
+                  variant="outlined"
+                  color="blue"
+                  size="medium"
+                  icon={EditIconWrap}
+                  iconPosition="start"
+                  onClick={startEdit}
+                  disabled={actionDisabled}
+                />
               )
             ) : null}
             <IconButton
