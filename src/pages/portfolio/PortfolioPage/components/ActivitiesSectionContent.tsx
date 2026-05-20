@@ -534,80 +534,99 @@ const ActivitiesSectionContent = forwardRef<
               </S.TagEditorShell>
             </Flex.Column>
           </Flex.Column>
-          <Flex.Column gap="0.25rem" style={{ width: '100%' }}>
-            <S.FieldLabel>역할</S.FieldLabel>
-            <Input
-              multiline
-              value={editDraft.role ?? ''}
-              onChange={e =>
-                setEditDraft(prev => ({
-                  ...prev,
-                  role: e.target.value,
-                }))
-              }
-              placeholder="담당 역할·기여 내용"
-              rows={2}
-              inputProps={{
-                maxLength: INPUT_MAX_LENGTH.ACTIVITY_ROLE,
-                'aria-label': '역할',
+          <Flex.Row
+            align="flex-start"
+            gap="0.75rem"
+            wrap="wrap"
+            style={{ width: '100%' }}
+          >
+            <Flex.Column
+              gap="0.25rem"
+              style={{
+                flex: '5 1 0',
+                minWidth: 'min(100%, 12rem)',
               }}
-              size="small"
-              fullWidth
-              sx={{
-                '& .MuiOutlinedInput-root': {
-                  backgroundColor: theme.palette.variant.default,
-                },
-                '& textarea': {
-                  resize: 'vertical',
-                },
-              }}
-            />
-            <S.CharCount
-              warn={
-                (editDraft.role?.length ?? 0) >= INPUT_MAX_LENGTH.ACTIVITY_ROLE - 40
-              }
             >
-              {editDraft.role?.length ?? 0} / {INPUT_MAX_LENGTH.ACTIVITY_ROLE}
-            </S.CharCount>
-          </Flex.Column>
-          <Flex.Column gap="0.25rem" style={{ width: '100%' }}>
-            <S.FieldLabel>성과 및 결과</S.FieldLabel>
-            <Input
-              multiline
-              value={editDraft.achievements ?? ''}
-              onChange={e =>
-                setEditDraft(prev => ({
-                  ...prev,
-                  achievements: e.target.value,
-                }))
-              }
-              placeholder="수상, 성과, 결과 요약"
-              rows={3}
-              inputProps={{
-                maxLength: INPUT_MAX_LENGTH.ACTIVITY_ACHIEVEMENTS,
-                'aria-label': '성과 및 결과',
+              <S.FieldLabel>역할</S.FieldLabel>
+              <Input
+                multiline
+                value={editDraft.role ?? ''}
+                onChange={e =>
+                  setEditDraft(prev => ({
+                    ...prev,
+                    role: e.target.value,
+                  }))
+                }
+                placeholder="담당 역할·기여 내용"
+                rows={2}
+                inputProps={{
+                  maxLength: INPUT_MAX_LENGTH.ACTIVITY_ROLE,
+                  'aria-label': '역할',
+                }}
+                size="small"
+                fullWidth
+                sx={{
+                  '& .MuiOutlinedInput-root': {
+                    backgroundColor: theme.palette.variant.default,
+                  },
+                  '& textarea': {
+                    resize: 'vertical',
+                  },
+                }}
+              />
+              <S.CharCount
+                warn={
+                  (editDraft.role?.length ?? 0) >= INPUT_MAX_LENGTH.ACTIVITY_ROLE - 40
+                }
+              >
+                {editDraft.role?.length ?? 0} / {INPUT_MAX_LENGTH.ACTIVITY_ROLE}
+              </S.CharCount>
+            </Flex.Column>
+            <Flex.Column
+              gap="0.25rem"
+              style={{
+                flex: '5 1 0',
+                minWidth: 'min(100%, 12rem)',
               }}
-              size="small"
-              fullWidth
-              sx={{
-                '& .MuiOutlinedInput-root': {
-                  backgroundColor: theme.palette.variant.default,
-                },
-                '& textarea': {
-                  resize: 'vertical',
-                },
-              }}
-            />
-            <S.CharCount
-              warn={
-                (editDraft.achievements?.length ?? 0) >=
-                INPUT_MAX_LENGTH.ACTIVITY_ACHIEVEMENTS - 80
-              }
             >
-              {editDraft.achievements?.length ?? 0} /{' '}
-              {INPUT_MAX_LENGTH.ACTIVITY_ACHIEVEMENTS}
-            </S.CharCount>
-          </Flex.Column>
+              <S.FieldLabel>성과 및 결과</S.FieldLabel>
+              <Input
+                multiline
+                value={editDraft.achievements ?? ''}
+                onChange={e =>
+                  setEditDraft(prev => ({
+                    ...prev,
+                    achievements: e.target.value,
+                  }))
+                }
+                placeholder="수상, 성과, 결과 요약"
+                rows={2}
+                inputProps={{
+                  maxLength: INPUT_MAX_LENGTH.ACTIVITY_ACHIEVEMENTS,
+                  'aria-label': '성과 및 결과',
+                }}
+                size="small"
+                fullWidth
+                sx={{
+                  '& .MuiOutlinedInput-root': {
+                    backgroundColor: theme.palette.variant.default,
+                  },
+                  '& textarea': {
+                    resize: 'vertical',
+                  },
+                }}
+              />
+              <S.CharCount
+                warn={
+                  (editDraft.achievements?.length ?? 0) >=
+                  INPUT_MAX_LENGTH.ACTIVITY_ACHIEVEMENTS - 80
+                }
+              >
+                {editDraft.achievements?.length ?? 0} /{' '}
+                {INPUT_MAX_LENGTH.ACTIVITY_ACHIEVEMENTS}
+              </S.CharCount>
+            </Flex.Column>
+          </Flex.Row>
           <S.MoreToggleRow>
             <S.MoreToggleButton
               type="button"
@@ -627,42 +646,66 @@ const ActivitiesSectionContent = forwardRef<
           {showMoreFields ? (
             <Flex.Column gap="0.75rem" style={{ width: '100%' }}>
               <Flex.Column gap="0.25rem" style={{ width: '100%' }}>
-                <S.FieldLabel>상세 설명</S.FieldLabel>
+                <S.FieldLabel>활동 상세 설명</S.FieldLabel>
+                  <Input
+                    multiline
+                    value={editDraft.description ?? ''}
+                    onChange={e =>
+                      setEditDraft(prev => ({
+                        ...prev,
+                        description: e.target.value,
+                      }))
+                    }
+                    placeholder="활동의 상세 내용을 입력해 주세요."
+                    rows={2}
+                    inputProps={{
+                      maxLength: INPUT_MAX_LENGTH.ACTIVITY_DESCRIPTION,
+                      'aria-label': '활동 상세 설명',
+                    }}
+                    size="small"
+                    fullWidth
+                    sx={{
+                      '& .MuiOutlinedInput-root': {
+                        backgroundColor: theme.palette.variant.default,
+                      },
+                      '& textarea': {
+                        resize: 'vertical',
+                      },
+                    }}
+                  />
+                  <S.CharCount
+                    warn={
+                      (editDraft.description?.length ?? 0) >=
+                      INPUT_MAX_LENGTH.ACTIVITY_DESCRIPTION - 20
+                    }
+                  >
+                    {editDraft.description?.length ?? 0} /{' '}
+                    {INPUT_MAX_LENGTH.ACTIVITY_DESCRIPTION}
+                  </S.CharCount>
+              </Flex.Column>
+              <Flex.Column gap="0.25rem" style={{ width: '100%' }}>
+                <S.FieldLabel>관련 URL</S.FieldLabel>
                 <Input
-                  multiline
-                  value={editDraft.description ?? ''}
+                  value={editDraft.url ?? ''}
                   onChange={e =>
                     setEditDraft(prev => ({
                       ...prev,
-                      description: e.target.value,
+                      url: e.target.value,
                     }))
                   }
-                  placeholder="활동의 상세 내용을 입력해 주세요."
-                  rows={3}
+                  placeholder="https://…"
                   inputProps={{
-                    maxLength: INPUT_MAX_LENGTH.ACTIVITY_DESCRIPTION,
-                    'aria-label': '상세 설명',
+                    maxLength: INPUT_MAX_LENGTH.ACTIVITY_URL,
+                    'aria-label': '활동 관련 URL',
                   }}
                   size="small"
-                  fullWidth
+                  style={{ width: '100%' }}
                   sx={{
                     '& .MuiOutlinedInput-root': {
                       backgroundColor: theme.palette.variant.default,
                     },
-                    '& textarea': {
-                      resize: 'vertical',
-                    },
                   }}
                 />
-                <S.CharCount
-                  warn={
-                    (editDraft.description?.length ?? 0) >=
-                    INPUT_MAX_LENGTH.ACTIVITY_DESCRIPTION - 20
-                  }
-                >
-                  {editDraft.description?.length ?? 0} /{' '}
-                  {INPUT_MAX_LENGTH.ACTIVITY_DESCRIPTION}
-                </S.CharCount>
               </Flex.Column>
               <Flex.Column gap="0.25rem" style={{ width: '100%' }}>
                 <S.FieldLabel>성과 설명</S.FieldLabel>
@@ -701,30 +744,6 @@ const ActivitiesSectionContent = forwardRef<
                   {editDraft.achievements_detail?.length ?? 0} /{' '}
                   {INPUT_MAX_LENGTH.ACTIVITY_ACHIEVEMENTS_DETAIL}
                 </S.CharCount>
-              </Flex.Column>
-              <Flex.Column gap="0.25rem" style={{ width: '100%' }}>
-                <S.FieldLabel>관련 URL</S.FieldLabel>
-                <Input
-                  value={editDraft.url ?? ''}
-                  onChange={e =>
-                    setEditDraft(prev => ({
-                      ...prev,
-                      url: e.target.value,
-                    }))
-                  }
-                  placeholder="https://…"
-                  inputProps={{
-                    maxLength: INPUT_MAX_LENGTH.ACTIVITY_URL,
-                    'aria-label': '활동 관련 URL',
-                  }}
-                  size="small"
-                  style={{ width: '100%' }}
-                  sx={{
-                    '& .MuiOutlinedInput-root': {
-                      backgroundColor: theme.palette.variant.default,
-                    },
-                  }}
-                />
               </Flex.Column>
             </Flex.Column>
           ) : null}
