@@ -1,9 +1,11 @@
 import { Button, Dropdown, Flex, Input, Text, Title } from '@/components';
 import { palette } from '@/styles/palette';
 import CloseIcon from '@mui/icons-material/Close';
+import DateRangeOutlinedIcon from '@mui/icons-material/DateRangeOutlined';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import EditIcon from '@mui/icons-material/Edit';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import OpenInNewIcon from '@mui/icons-material/OpenInNew';
 import {
   forwardRef,
   useCallback,
@@ -45,6 +47,15 @@ function hasOptionalActivityFields(d: Partial<ActivityItem>): boolean {
     (d.description ?? '').trim() ||
     (d.achievements_detail ?? '').trim() ||
     (d.url ?? '').trim(),
+  );
+}
+
+function ActivityDetailRow({ label, value }: { label: string; value: string }) {
+  return (
+    <S.DetailRow>
+      <S.DetailLabel>{label}</S.DetailLabel>
+      <S.DetailValue>{value}</S.DetailValue>
+    </S.DetailRow>
   );
 }
 
@@ -251,6 +262,92 @@ const ActivitiesSectionContent = forwardRef<
     }),
     [readOnly, handleAdd],
   );
+
+  const renderActivityView = (item: ActivityItem) => {
+    const period = formatActivityPeriodRange(item.start_date, item.end_date);
+    const tags = dedupeActivityTags(item.tags);
+    const hasDetailPanel = Boolean(
+      item.host?.trim() || item.role?.trim() || item.achievements?.trim(),
+    );
+    const showEmptyHint =
+      !item.description?.trim() &&
+      !hasDetailPanel &&
+      !item.url?.trim();
+
+    return (
+      <>
+        <S.CardHeader>
+          <Flex.Column gap="0.4rem" style={{ flex: 1, minWidth: 0 }}>
+            <S.TitlePeriodRow align="center" gap="0.5rem" wrap="wrap">
+              <S.ActivityTitle>{item.title}</S.ActivityTitle>
+              <S.PeriodRow>
+                <DateRangeOutlinedIcon sx={{ fontSize: 14, flexShrink: 0 }} aria-hidden />
+                <span>{period}</span>
+              </S.PeriodRow>
+            </S.TitlePeriodRow>
+            {tags.length > 0 ? (
+              <Flex.Row gap="0.375rem" wrap="wrap" style={{ width: '100%' }}>
+                {tags.map(tag => (
+                  <S.TagChip key={`${item.id}-${tag}`}>{tag}</S.TagChip>
+                ))}
+              </Flex.Row>
+            ) : null}
+          </Flex.Column>
+          {!readOnly ? (
+            <Flex.Row gap="0.25rem" align="center" style={{ flexShrink: 0 }}>
+              <S.EditButton
+                type="button"
+                onClick={() => handleStartEdit(item)}
+                aria-label="수정"
+              >
+                <EditIcon sx={{ fontSize: 16 }} />
+              </S.EditButton>
+              <S.DeleteButton
+                type="button"
+                onClick={() => setActivityDeleteConfirmId(item.id)}
+                aria-label="삭제"
+              >
+                <DeleteOutlineIcon sx={{ fontSize: 18 }} />
+              </S.DeleteButton>
+            </Flex.Row>
+          ) : null}
+        </S.CardHeader>
+
+        {hasDetailPanel ? (
+          <S.DetailPanel>
+            {item.host?.trim() ? (
+              <ActivityDetailRow label="주최" value={item.host.trim()} />
+            ) : null}
+            {item.role?.trim() ? (
+              <ActivityDetailRow label="역할" value={item.role.trim()} />
+            ) : null}
+            {item.achievements?.trim() ? (
+              <ActivityDetailRow label="성과" value={item.achievements.trim()} />
+            ) : null}
+          </S.DetailPanel>
+        ) : null}
+
+        {item.description?.trim() ? (
+          <S.BodyText>{item.description.trim()}</S.BodyText>
+        ) : showEmptyHint ? (
+          <S.EmptyHint>
+            추가 설명을 입력하면 더 나은 프롬프트 결과를 얻을 수 있습니다.
+          </S.EmptyHint>
+        ) : null}
+
+        {item.url?.trim() ? (
+          <S.UrlRow
+            href={item.url.trim()}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            <OpenInNewIcon sx={{ fontSize: 16, flexShrink: 0 }} aria-hidden />
+            <span>{item.url.trim()}</span>
+          </S.UrlRow>
+        ) : null}
+      </>
+    );
+  };
 
   const renderActivityEditorForm = () => (
     <Flex.Column gap="0.75rem" style={{ width: '100%', minWidth: 0 }}>
@@ -799,152 +896,7 @@ const ActivitiesSectionContent = forwardRef<
                   {!readOnly && editingId === item.id ? (
                     renderActivityEditorForm()
                   ) : (
-                    <>
-                      <Flex.Row
-                        align="flex-start"
-                        justify="space-between"
-                        gap="0.5rem"
-                        wrap="nowrap"
-                        style={{ width: '100%', minWidth: 0 }}
-                      >
-                        <Flex.Row
-                          align="center"
-                          gap="0.5rem"
-                          wrap="wrap"
-                          style={{ flex: 1, minWidth: 0 }}
-                        >
-                          {(item.tags?.length ?? 0) > 0
-                            ? item.tags.map(tag => (
-                                <S.CategoryTag key={`${item.id}-${tag}`}>
-                                  {tag}
-                                </S.CategoryTag>
-                              ))
-                            : null}
-                          <Text
-                            as="span"
-                            style={{
-                              ...theme.typography.body2,
-                              color: theme.palette.grey[600],
-                              flexShrink: 0,
-                              margin: 0,
-                            }}
-                          >
-                            {formatActivityPeriodRange(
-                              item.start_date,
-                              item.end_date,
-                            )}
-                          </Text>
-                          <Text
-                            as="span"
-                            style={{
-                              ...theme.typography.body2,
-                              fontWeight: 600,
-                              margin: 0,
-                              wordBreak: 'break-word',
-                            }}
-                          >
-                            {item.title}
-                          </Text>
-                        </Flex.Row>
-                        {!readOnly && (
-                          <Flex.Row
-                            gap="0.25rem"
-                            align="center"
-                            style={{ flexShrink: 0, alignSelf: 'flex-start' }}
-                          >
-                            <S.EditButton
-                              type="button"
-                              onClick={() => handleStartEdit(item)}
-                              aria-label="수정"
-                            >
-                              <EditIcon sx={{ fontSize: 16 }} />
-                            </S.EditButton>
-                            <S.DeleteButton
-                              type="button"
-                              onClick={() => setActivityDeleteConfirmId(item.id)}
-                              aria-label="삭제"
-                            >
-                              <DeleteOutlineIcon sx={{ fontSize: 18 }} />
-                            </S.DeleteButton>
-                          </Flex.Row>
-                        )}
-                      </Flex.Row>
-                      <Flex.Column
-                        gap="0.375rem"
-                        style={{
-                          width: '100%',
-                          minWidth: 0,
-                        }}
-                      >
-                        {item.host?.trim() ? (
-                          <Text
-                            as="span"
-                            style={{
-                              ...theme.typography.body2,
-                              color: theme.palette.grey[600],
-                              margin: 0,
-                              wordBreak: 'break-word',
-                            }}
-                          >
-                            주최: {item.host.trim()}
-                          </Text>
-                        ) : null}
-                        {item.role?.trim() ? (
-                          <Text
-                            as="span"
-                            style={{
-                              ...theme.typography.body2,
-                              color: theme.palette.grey[600],
-                              margin: 0,
-                              wordBreak: 'break-word',
-                            }}
-                          >
-                            역할: {item.role.trim()}
-                          </Text>
-                        ) : null}
-                        {item.achievements?.trim() ? (
-                          <Text
-                            as="span"
-                            style={{
-                              ...theme.typography.body2,
-                              color: theme.palette.grey[600],
-                              margin: 0,
-                              wordBreak: 'break-word',
-                            }}
-                          >
-                            성과: {item.achievements.trim()}
-                          </Text>
-                        ) : null}
-                        <Text
-                          as="span"
-                          style={{
-                            ...theme.typography.body2,
-                            color: theme.palette.grey[600],
-                            margin: 0,
-                            wordBreak: 'break-word',
-                          }}
-                        >
-                          {item.description ? (
-                            <>{item.description}</>
-                          ) : !item.host?.trim() &&
-                            !item.role?.trim() &&
-                            !item.achievements?.trim() ? (
-                            <span style={{ color: theme.palette.grey[400] }}>
-                              추가 설명을 통해 더 나은 프롬프트 결과를 얻을 수 있습니다.
-                            </span>
-                          ) : null}
-                        </Text>
-                        {item.url?.trim() ? (
-                          <S.ActivityUrlLink
-                            href={item.url.trim()}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                          >
-                            {item.url.trim()}
-                          </S.ActivityUrlLink>
-                        ) : null}
-                      </Flex.Column>
-                    </>
+                    renderActivityView(item)
                   )}
                 </S.Row>
               ))}
@@ -1062,14 +1014,141 @@ const S = {
   `,
   Row: styled(Flex.Column)`
     padding: 0.75rem 1rem;
-    gap: 0.375rem;
+    gap: 0.5rem;
     border-radius: 0.5rem;
     background-color: ${({ theme }) => theme.palette.background.paper};
     border: 1px solid ${({ theme }) => theme.palette.grey[200]};
     box-shadow: 0 1px 2px rgba(16, 24, 40, 0.06);
-    transition: box-shadow 0.15s ease;
+    transition: box-shadow 0.15s ease, border-color 0.15s ease;
     &:hover {
+      border-color: ${({ theme }) => theme.palette.grey[300]};
       box-shadow: 0 2px 6px rgba(16, 24, 40, 0.08);
+    }
+  `,
+  TitlePeriodRow: styled(Flex.Row)`
+    width: 100%;
+    min-width: 0;
+  `,
+  CardHeader: styled(Flex.Row)`
+    display: flex;
+    flex-direction: row;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 0.75rem;
+    width: 100%;
+    min-width: 0;
+  `,
+  ActivityTitle: styled('span')`
+    margin: 0;
+    font-size: 0.875rem;
+    font-weight: 600;
+    line-height: 1.4;
+    color: ${palette.nearBlack};
+    word-break: break-word;
+  `,
+  PeriodRow: styled(Flex.Row)`
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    flex-shrink: 0;
+    gap: 0.3rem;
+    margin: 0;
+    font-size: 0.8125rem;
+    font-weight: 400;
+    line-height: 1.35;
+    color: ${palette.grey500};
+    & > svg {
+      color: ${palette.grey500};
+    }
+  `,
+  TagChip: styled('span')`
+    display: inline-flex;
+    align-items: center;
+    padding: 0.2rem 0.5rem;
+    border-radius: 999px;
+    background-color: ${palette.white};
+    color: ${palette.blue500};
+    border: 1px solid ${palette.blue400};
+    font-size: 0.6875rem;
+    font-weight: 600;
+    line-height: 1.3;
+  `,
+  DetailPanel: styled(Flex.Column)`
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    width: 100%;
+    padding: 0.65rem 0.75rem;
+    border-radius: 0.5rem;
+    background-color: ${palette.blue300};
+    box-sizing: border-box;
+  `,
+  DetailRow: styled(Flex.Row)`
+    display: flex;
+    flex-direction: row;
+    align-items: flex-start;
+    gap: 0.65rem;
+    width: 100%;
+    min-width: 0;
+  `,
+  DetailLabel: styled('span')`
+    flex: 0 0 2.25rem;
+    font-size: 0.6875rem;
+    font-weight: 700;
+    line-height: 1.45;
+    color: ${palette.blue600};
+    letter-spacing: 0.02em;
+  `,
+  DetailValue: styled('span')`
+    flex: 1 1 auto;
+    min-width: 0;
+    font-size: 0.8125rem;
+    font-weight: 500;
+    line-height: 1.5;
+    color: ${palette.nearBlack};
+    word-break: break-word;
+  `,
+  BodyText: styled('p')`
+    margin: 0;
+    font-size: 0.8125rem;
+    font-weight: 400;
+    line-height: 1.55;
+    color: ${palette.grey600};
+    word-break: break-word;
+  `,
+  EmptyHint: styled('p')`
+    margin: 0;
+    font-size: 0.75rem;
+    font-weight: 400;
+    line-height: 1.5;
+    color: ${palette.grey400};
+    font-style: italic;
+  `,
+  UrlRow: styled('a')`
+    display: inline-flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 0.35rem;
+    max-width: 100%;
+    padding: 0.4rem 0.55rem;
+    border-radius: 0.375rem;
+    background-color: ${palette.grey100};
+    border: 1px solid ${palette.grey200};
+    box-sizing: border-box;
+    font-size: 0.75rem;
+    font-weight: 600;
+    line-height: 1.35;
+    color: ${palette.blue500};
+    text-decoration: none;
+    word-break: break-all;
+    transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+    & > svg {
+      color: ${palette.blue500};
+    }
+    &:hover {
+      background-color: ${palette.blue300};
+      border-color: ${palette.blue400};
+      color: ${palette.blue600};
     }
   `,
   FieldLabel: styled('span')`
@@ -1077,17 +1156,6 @@ const S = {
     font-weight: 500;
     color: ${({ theme }) => theme.palette.text.secondary};
     line-height: 1.2;
-  `,
-  ActivityUrlLink: styled('a')`
-    display: inline-block;
-    max-width: 100%;
-    font-size: 0.8125rem;
-    color: ${palette.blue500};
-    text-decoration: underline;
-    word-break: break-all;
-    &:hover {
-      color: ${palette.blue600};
-    }
   `,
   CategoryTag: styled('span')`
     display: inline-flex;
