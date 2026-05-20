@@ -689,12 +689,18 @@ export const PortfolioHandlers = [
 
     // 백엔드 스펙: visible_only=true면 페이지네이션 무시하고 전부 반환
     if (visibleOnly) {
-      return HttpResponse.json({ repositories: list }, { status: 200 });
+      return HttpResponse.json(
+        { repositories: list, total: list.length },
+        { status: 200 },
+      );
     }
 
     const start = (page - 1) * perPage;
     const slice = list.slice(start, start + perPage);
-    return HttpResponse.json({ repositories: slice }, { status: 200 });
+    return HttpResponse.json(
+      { repositories: slice, total: list.length },
+      { status: 200 },
+    );
   }),
 
   http.put(BASE_URL + ENDPOINT.PORTFOLIO_REPOSITORIES, async ({ request }) => {

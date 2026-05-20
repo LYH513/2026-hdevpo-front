@@ -195,7 +195,7 @@ const CvGenerateStep3Customize = ({
       return;
     }
     if (notesOver) {
-      toast.warn(`추가 변경 사항은 ${CV_CUSTOMIZE_MAX_ADDITIONAL_NOTES}자 이하로 입력해 주세요.`);
+      toast.warn(`추가 프롬프트 입력은 ${CV_CUSTOMIZE_MAX_ADDITIONAL_NOTES}자 이하로 입력해 주세요.`);
       return;
     }
     generateHtmlMutation.mutate(
@@ -215,7 +215,7 @@ const CvGenerateStep3Customize = ({
       return;
     }
     if (notesOver) {
-      toast.warn(`추가 변경 사항은 ${CV_CUSTOMIZE_MAX_ADDITIONAL_NOTES}자 이하로 입력해 주세요.`);
+      toast.warn(`추가 프롬프트 입력은 ${CV_CUSTOMIZE_MAX_ADDITIONAL_NOTES}자 이하로 입력해 주세요.`);
       return;
     }
     setConfirmOpen(true);
@@ -237,7 +237,7 @@ const CvGenerateStep3Customize = ({
             lineHeight: 1.6,
           }}
         >
-          레이아웃·색상 테마·정보량을 골라 주시고, 필요하면 맨 아래에 추가 변경 사항을 적어 주세요.
+          레이아웃·색상 테마·정보량을 골라 주시고, 필요하면 맨 아래에 추가 프롬프트를 입력해주세요.
           「AI 결과 생성하기」를 누르면 맞춤 프롬프트와 포트폴리오 HTML이 만들어져요. 완성된 HTML은
           다음 단계에서 바로 확인하고 수정할 수 있습니다.
         </Text>
@@ -310,7 +310,7 @@ const CvGenerateStep3Customize = ({
           })}
         </Flex.Row>
 
-        <S.SectionTitle style={{ marginTop: '1.25rem' }}>추가 변경 사항</S.SectionTitle>
+        <S.SectionTitle style={{ marginTop: '1.25rem' }}>추가 프롬프트 입력</S.SectionTitle>
         <Text
           margin="0 0 0.35rem 0"
           style={{
@@ -331,7 +331,7 @@ const CvGenerateStep3Customize = ({
           placeholder="예: GitHub 프로젝트 섹션을 가장 크게·기술 스택과 함께 상세히 / 마일리지·대외활동은 상단 요약 카드로 눈에 띄게 / 수상·자격은 짧게 한 줄씩만"
           inputProps={{
             maxLength: CV_CUSTOMIZE_MAX_ADDITIONAL_NOTES,
-            'aria-label': '추가 변경 사항',
+            'aria-label': '추가 프롬프트 입력',
           }}
           sx={{
             '& .MuiOutlinedInput-root': {

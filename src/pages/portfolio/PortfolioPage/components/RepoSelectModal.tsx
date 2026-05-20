@@ -73,6 +73,8 @@ const RepoSelectModal = ({ open, onClose }: RepoSelectModalProps) => {
     Map<number, PortfolioRepositoryItem>
   >(() => new Map());
   const [page, setPage] = useState(1);
+  /** GET 응답 `total` — 검색·owner 필터 기준 전체 건수 */
+  const [repoTotal, setRepoTotal] = useState(0);
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
   const [searchQuery, setSearchQuery] = useState('');
   /** 디바운스(또는 검색 버튼·Enter 즉시) 확정값 → queryParams.search */
@@ -125,6 +127,7 @@ const RepoSelectModal = ({ open, onClose }: RepoSelectModalProps) => {
 
   useEffect(() => {
     setPage(1);
+    setRepoTotal(0);
   }, [appliedSearch, selectedOwner]);
 
   /** 디바운스 기다리지 않고 즉시 검색(Enter·버튼) */
@@ -139,6 +142,7 @@ const RepoSelectModal = ({ open, onClose }: RepoSelectModalProps) => {
     if (!open) return;
     selectionTouchedRef.current = false;
     setPage(1);
+    setRepoTotal(0);
     setLoadedRepoById(new Map());
     setSearchQuery('');
     setAppliedSearch('');
@@ -207,6 +211,7 @@ const RepoSelectModal = ({ open, onClose }: RepoSelectModalProps) => {
       .then(res => {
         const list = res.repositories ?? [];
         setPageRepos(list);
+        setRepoTotal(res.total ?? list.length);
         setLoadedRepoById(prev => {
           const next = new Map(prev);
           for (const r of list) {
@@ -346,8 +351,13 @@ const RepoSelectModal = ({ open, onClose }: RepoSelectModalProps) => {
       .sort((a, b) => a.repo_id - b.repo_id);
   }, [selectedIds, loadedRepoById, portfolioRepos]);
 
+  const totalPages = useMemo(
+    () => Math.max(1, Math.ceil(repoTotal / REPOS_PER_PAGE)),
+    [repoTotal],
+  );
   const hasPrevPage = page > 1;
-  const hasNextPage = pageRepos.length >= REPOS_PER_PAGE;
+  const hasNextPage =
+    repoTotal > 0 ? page < totalPages : pageRepos.length >= REPOS_PER_PAGE;
   const selectedCount = selectedIds.size;
 
   return (
@@ -682,7 +692,7 @@ const RepoSelectModal = ({ open, onClose }: RepoSelectModalProps) => {
                 textAlign: 'center',
               }}
             >
-              {page}페이지 · 페이지당 {REPOS_PER_PAGE}개
+              {page} / {totalPages} 페이지 
             </Text>
             {compactRepoPagination ? (
               <S.PaginationIconSlot>

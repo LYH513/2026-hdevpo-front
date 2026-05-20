@@ -81,6 +81,8 @@ export interface PatchRepositoryBody {
 
 export interface RepositoriesResponse {
   repositories: PortfolioRepositoryItem[];
+  /** 필터 적용 후 전체 건수 (페이지네이션 계산용) */
+  total: number;
 }
 
 /** PUT /api/portfolio/repositories — 표시 설정 일괄 동기화 응답 */
