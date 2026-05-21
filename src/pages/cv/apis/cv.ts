@@ -67,9 +67,39 @@ function readCvId(o: Record<string, unknown>): number {
   return 0;
 }
 
+function hasOwnKey(o: Record<string, unknown>, key: string): boolean {
+  return Object.prototype.hasOwnProperty.call(o, key);
+}
+
 /** 일부 배포 서버는 `is_public` 대신 `_public`(Jackson 등)으로 내려줌 */
 function readCvIsPublic(o: Record<string, unknown>): boolean {
+  if (
+    !hasOwnKey(o, 'is_public') &&
+    !hasOwnKey(o, '_public') &&
+    !hasOwnKey(o, 'isPublic')
+  ) {
+    return false;
+  }
   const v = o.is_public ?? o._public ?? o.isPublic;
+  return Boolean(v);
+}
+
+function readCvIsFavorite(o: Record<string, unknown>): boolean {
+  if (
+    !hasOwnKey(o, 'is_favorite') &&
+    !hasOwnKey(o, 'isFavorite') &&
+    !hasOwnKey(o, '_favorite')
+  ) {
+    return false;
+  }
+  const v = o.is_favorite ?? o.isFavorite ?? o._favorite;
+  if (typeof v === 'boolean') return v;
+  if (typeof v === 'number') return v !== 0;
+  if (typeof v === 'string') {
+    const s = v.trim().toLowerCase();
+    if (s === 'true' || s === '1') return true;
+    if (s === 'false' || s === '0') return false;
+  }
   return Boolean(v);
 }
 
@@ -144,7 +174,7 @@ function normalizePortfolioCvListItem(raw: unknown): PortfolioCvListItem {
     created_at: String(o.created_at ?? ''),
     updated_at: String(o.updated_at ?? ''),
     is_public: readCvIsPublic(o),
-    is_favorite: Boolean(o.is_favorite ?? o.isFavorite),
+    is_favorite: readCvIsFavorite(o),
   };
 }
 
@@ -265,12 +295,12 @@ export interface PortfolioCvPatchRequest {
   is_favorite?: boolean;
 }
 
+/** 부분 PATCH 응답에 is_favorite 등이 빠질 수 있어 raw 반환 — 캐시 병합은 mutation에서 처리 */
 export const patchPortfolioCv = async (id: number, body: PortfolioCvPatchRequest) => {
-  const raw = await http.patch<PortfolioCvPatchRequest, unknown>(
+  return http.patch<PortfolioCvPatchRequest, unknown>(
     `${ENDPOINT.PORTFOLIO_CV}/${id}`,
     body,
   );
-  return normalizePortfolioCvDetail(raw);
 };
 
 /** DELETE /api/portfolio/cv/{id} */
