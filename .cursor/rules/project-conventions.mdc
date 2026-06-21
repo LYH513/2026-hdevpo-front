@@ -1,0 +1,40 @@
+---
+description: React/Vite 프론트엔드 프로젝트 전역 구현 규칙
+alwaysApply: true
+---
+
+# 프로젝트 구현 규칙
+
+- 코드를 추가하거나 변경하기 전에 주변 폴더, 파일, 이름, 컴포넌트, hook, API, mock 패턴을 먼저 확인한다.
+- 특별한 이유가 없으면 기존 구조와 이름 형식을 따른다.
+- 기능 코드는 `src/pages/mileage`, `src/pages/portfolio`, `src/pages/cv`, `src/pages/dashboard`, `src/pages/award`, `src/pages/auth`, `src/pages/profile` 같은 현재 도메인 폴더에 둔다.
+- import는 기존처럼 `@/` alias를 우선 사용하고, 공통 컴포넌트는 `src/components/index.ts`의 export 흐름을 존중한다.
+
+## API 작업
+
+- endpoint 상수는 `src/apis/endPoint.ts`, 공통 client는 `src/apis/axios.ts`와 `src/apis/http.ts`, 도메인 API 함수는 `src/pages/**/apis` 구조를 따른다.
+- request/response 타입은 도메인 API 파일 근처나 기존 `types` 폴더 패턴에 맞춰 둔다.
+- 함수와 hook 이름은 `getX`, `postX`, `patchX`, `deleteX`, `useGetXQuery`, `usePostXMutation` 같은 기존 스타일을 따른다.
+- API 변경 시 `src/mocks/handlers`와 `src/mocks/fixtures`도 함께 갱신한다. Mock은 기존처럼 `BASE_URL + ENDPOINT.*`, `http.*`, `HttpResponse` 스타일을 따른다.
+- 인증 변경 요청이 아니라면 쿠키 인증, `withCredentials: true`, 401 전역 로그아웃, 500 Sentry capture 흐름을 유지한다.
+
+## UI와 스타일
+
+- 새 컴포넌트를 만들기 전에 `src/components`의 공통 UI를 먼저 검토한다. `Button`, `Flex`, `Input`, `Dropdown`, `Modal`, `Table`, `Tabs`, `Text`, `Title`, `Heading`, skeleton, error 컴포넌트를 우선 사용한다.
+- 스타일 값은 `@/styles`의 `palette`, `theme`, `typography`, `common`, `global`, `reset`, `hideScrollbar`를 먼저 재사용한다.
+- `@/styles`에 없는 경우에만 새 스타일 값을 추가한다.
+- 레이아웃은 `display: flex`를 최대한 사용한다. `position: absolute` 또는 `position: relative`는 오버레이, 앵커 UI, 브라우저 제약처럼 꼭 필요한 경우에만 좁게 사용한다.
+- UI 추가/변경 시 모바일 반응형을 반드시 고려한다. 기존 반응형 방식, 특히 `src/constants/system.ts`의 `MAX_RESPONSIVE_WIDTH`와 주변 media query 패턴을 따른다.
+
+## React 패턴
+
+- 함수형 컴포넌트와 hooks를 사용한다.
+- 서버 상태는 TanStack Query 패턴을 따르고, 전역 클라이언트 상태는 기존 Zustand store 구조를 우선 활용한다.
+- 재사용 가능한 로직은 해당 도메인의 `hooks` 폴더 또는 `src/shared/hooks`에 둔다.
+- 기존 패턴으로 요구사항을 처리할 수 있다면 새 추상화, 의존성, 전역 스타일, 레이아웃 시스템을 추가하지 않는다.
+
+## 검증
+
+- 코드 변경 후에는 수정한 파일의 lint 진단을 확인한다.
+- API나 UI 변경이 있으면 가능한 범위에서 `yarn dev:msw` smoke test를 고려한다.
+- 넓은 변경이나 배포 영향이 있는 변경은 `yarn lint`와 `yarn build` 확인을 우선한다.

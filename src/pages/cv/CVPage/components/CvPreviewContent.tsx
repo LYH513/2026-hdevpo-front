@@ -184,6 +184,24 @@ const CvPreviewContent = ({
     [data],
   );
   const htmlRaw = isEditing ? editHtml : (data?.html_content ?? '');
+
+  const handleCopyHtml = async () => {
+    const html = htmlRaw.trim();
+    if (!html) {
+      toast.info('복사할 HTML이 없습니다.', { position: 'top-center' });
+      return;
+    }
+    const ok = await copyTextToClipboard(html);
+    if (ok) {
+      toast.success('HTML이 클립보드에 복사되었습니다.', { position: 'top-center' });
+    } else {
+      toast.error(
+        '복사에 실패했습니다. HTTPS 접속인지 확인하거나 텍스트를 직접 선택해 복사해 주세요.',
+        { position: 'top-center' },
+      );
+    }
+  };
+
   const htmlPreviewSrcDoc = useMemo(() => {
     const sanitized = sanitizeCvHtml(htmlRaw);
     return buildCvPreviewSrcDoc(sanitized);
@@ -675,6 +693,16 @@ const CvPreviewContent = ({
                         icon={showHtmlPreview ? CodeIconWrap : HtmlIconWrap}
                         iconPosition="start"
                         onClick={() => setShowHtmlPreview(v => !v)}
+                        disabled={!htmlRaw.trim() || pdfDownloading}
+                      />
+                      <Button
+                        label="복사하기"
+                        variant="outlined"
+                        color="blue"
+                        size="small"
+                        icon={CopyIconWrap}
+                        iconPosition="start"
+                        onClick={handleCopyHtml}
                         disabled={!htmlRaw.trim() || pdfDownloading}
                       />
                     </Flex.Row>

@@ -27,8 +27,12 @@ function coerceRecordId(v: unknown): number | null {
   return null;
 }
 
+function hasOwnKey(o: Record<string, unknown>, key: string): boolean {
+  return Object.prototype.hasOwnProperty.call(o, key);
+}
+
 function coerceBoolean(v: unknown): boolean | undefined {
-  if (v === undefined) return undefined;
+  if (v === undefined || v === null) return undefined;
   if (typeof v === 'boolean') return v;
   if (typeof v === 'number') return v !== 0;
   if (typeof v === 'string') {
@@ -39,7 +43,7 @@ function coerceBoolean(v: unknown): boolean | undefined {
   return Boolean(v);
 }
 
-/** 응답에서 목록·상세에 쓸 만한 필드만 안전하게 병합 */
+/** 응답에 실제로 포함된 필드만 병합 (부분 PATCH 시 is_favorite 누락 → false 덮어쓰기 방지) */
 function mergeDetailFromPatchResponse(
   prev: PortfolioCvDetail,
   raw: unknown,
@@ -52,13 +56,21 @@ function mergeDetailFromPatchResponse(
   const rid = coerceRecordId(o.id);
   if (rid != null && rid !== prev.id) return {};
 
-  const pub = o.is_public ?? o._public ?? o.isPublic;
-  const isPublic = coerceBoolean(pub);
-  if (isPublic !== undefined) patch.is_public = isPublic;
+  if (hasOwnKey(o, 'is_public') || hasOwnKey(o, '_public') || hasOwnKey(o, 'isPublic')) {
+    const pub = o.is_public ?? o._public ?? o.isPublic;
+    const isPublic = coerceBoolean(pub);
+    if (isPublic !== undefined) patch.is_public = isPublic;
+  }
 
-  const fav = o.is_favorite ?? o.isFavorite;
-  const isFavorite = coerceBoolean(fav);
-  if (isFavorite !== undefined) patch.is_favorite = isFavorite;
+  if (
+    hasOwnKey(o, 'is_favorite') ||
+    hasOwnKey(o, 'isFavorite') ||
+    hasOwnKey(o, '_favorite')
+  ) {
+    const fav = o.is_favorite ?? o.isFavorite ?? o._favorite;
+    const isFavorite = coerceBoolean(fav);
+    if (isFavorite !== undefined) patch.is_favorite = isFavorite;
+  }
 
   const str = (a: unknown, b?: unknown) =>
     (typeof a === 'string' ? a : typeof b === 'string' ? b : undefined) as
@@ -106,10 +118,10 @@ function mergeDetailFromPatchResponse(
     };
   }
 
-  const readIdArray = (raw: unknown): number[] => {
-    if (!Array.isArray(raw)) return [];
+  const readIdArray = (rawIds: unknown): number[] => {
+    if (!Array.isArray(rawIds)) return [];
     const out: number[] = [];
-    for (const x of raw) {
+    for (const x of rawIds) {
       if (typeof x === 'number' && Number.isFinite(x)) out.push(x);
       else if (typeof x === 'string' && x.trim() !== '' && !Number.isNaN(Number(x))) {
         out.push(Number(x));
@@ -141,6 +153,91 @@ function mergeDetailFromPatchResponse(
   if (lga !== undefined) patch.last_generated_at = lga;
 
   return patch;
+}
+
+function applyListPatchFromBody(
+  item: PortfolioCvListItem,
+  body: PortfolioCvPatchRequest,
+  fromResponse: Partial<PortfolioCvDetail>,
+): PortfolioCvListItem {
+  let next: PortfolioCvListItem = { ...item };
+
+  const {
+    is_public: respPublic,
+    is_favorite: respFavorite,
+    title: respTitle,
+    ...rest
+  } = fromResponse;
+
+  if (Object.keys(rest).length > 0) {
+    next = { ...next, ...rest, id: next.id };
+  }
+
+  if (body.title !== undefined) {
+    next.title = body.title;
+  } else if (respTitle !== undefined) {
+    next.title = respTitle;
+  }
+
+  if (body.is_public !== undefined) {
+    next.is_public = Boolean(body.is_public);
+  } else if (respPublic !== undefined) {
+    next.is_public = respPublic;
+  }
+
+  if (body.is_favorite !== undefined) {
+    next.is_favorite = Boolean(body.is_favorite);
+  } else if (respFavorite !== undefined) {
+    next.is_favorite = respFavorite;
+  }
+
+  return next;
+}
+
+function applyDetailPatchFromBody(
+  detail: PortfolioCvDetail,
+  body: PortfolioCvPatchRequest,
+  fromResponse: Partial<PortfolioCvDetail>,
+): PortfolioCvDetail {
+  let next: PortfolioCvDetail = { ...detail };
+
+  const {
+    is_public: respPublic,
+    is_favorite: respFavorite,
+    title: respTitle,
+    html_content: respHtml,
+    ...rest
+  } = fromResponse;
+
+  if (Object.keys(rest).length > 0) {
+    next = { ...next, ...rest };
+  }
+
+  if (body.title !== undefined) {
+    next.title = body.title;
+  } else if (respTitle !== undefined) {
+    next.title = respTitle;
+  }
+
+  if (body.html_content !== undefined) {
+    next.html_content = body.html_content;
+  } else if (respHtml !== undefined) {
+    next.html_content = respHtml;
+  }
+
+  if (body.is_public !== undefined) {
+    next.is_public = Boolean(body.is_public);
+  } else if (respPublic !== undefined) {
+    next.is_public = respPublic;
+  }
+
+  if (body.is_favorite !== undefined) {
+    next.is_favorite = Boolean(body.is_favorite);
+  } else if (respFavorite !== undefined) {
+    next.is_favorite = respFavorite;
+  }
+
+  return next;
 }
 
 const usePatchPortfolioCvMutation = () => {
@@ -176,7 +273,7 @@ const usePatchPortfolioCvMutation = () => {
         },
         rawUpdated,
       );
-      // 응답에 id만 있고 나머지가 비어 merge가 무의미한 경우 — 본문 기반으로만 보강
+
       const responseLooksEmpty =
         rawUpdated == null ||
         (typeof rawUpdated === 'object' &&
@@ -189,35 +286,11 @@ const usePatchPortfolioCvMutation = () => {
           if (!old?.cvs) return old;
           return {
             ...old,
-            cvs: old.cvs.map(c => {
-              if (c.id !== id) return c;
-              let next: PortfolioCvListItem = { ...c };
-              if (!responseLooksEmpty && Object.keys(fromResponse).length > 0) {
-                next = {
-                  ...next,
-                  ...fromResponse,
-                  id: next.id,
-                  is_public:
-                    fromResponse.is_public !== undefined
-                      ? fromResponse.is_public
-                      : next.is_public,
-                  is_favorite:
-                    fromResponse.is_favorite !== undefined
-                      ? fromResponse.is_favorite
-                      : next.is_favorite,
-                };
-              }
-              if (body.is_public !== undefined) {
-                next = { ...next, is_public: Boolean(body.is_public) };
-              }
-              if (body.is_favorite !== undefined) {
-                next = { ...next, is_favorite: Boolean(body.is_favorite) };
-              }
-              if (body.title !== undefined) {
-                next = { ...next, title: body.title };
-              }
-              return next;
-            }),
+            cvs: old.cvs.map(c =>
+              c.id !== id
+                ? c
+                : applyListPatchFromBody(c, body, fromResponse),
+            ),
           };
         },
       );
@@ -226,23 +299,7 @@ const usePatchPortfolioCvMutation = () => {
         [QUERY_KEYS.portfolioCv, 'detail', id],
         old => {
           if (!old || old.id !== id) return old;
-          let next: PortfolioCvDetail = { ...old };
-          if (!responseLooksEmpty && Object.keys(fromResponse).length > 0) {
-            next = { ...next, ...fromResponse };
-          }
-          if (body.is_public !== undefined) {
-            next = { ...next, is_public: Boolean(body.is_public) };
-          }
-          if (body.title !== undefined) {
-            next = { ...next, title: body.title };
-          }
-          if (body.html_content !== undefined) {
-            next = { ...next, html_content: body.html_content };
-          }
-          if (body.is_favorite !== undefined) {
-            next = { ...next, is_favorite: Boolean(body.is_favorite) };
-          }
-          return next;
+          return applyDetailPatchFromBody(old, body, fromResponse);
         },
       );
 

@@ -266,8 +266,13 @@ const ActivitiesSectionContent = forwardRef<
   const renderActivityView = (item: ActivityItem) => {
     const period = formatActivityPeriodRange(item.start_date, item.end_date);
     const tags = dedupeActivityTags(item.tags);
+    const achievementSummary = item.achievements?.trim() ?? '';
+    const achievementDetail = item.achievements_detail?.trim() ?? '';
     const hasDetailPanel = Boolean(
-      item.host?.trim() || item.role?.trim() || item.achievements?.trim(),
+      item.host?.trim() ||
+        item.role?.trim() ||
+        achievementSummary ||
+        achievementDetail,
     );
     const showEmptyHint =
       !item.description?.trim() &&
@@ -321,8 +326,14 @@ const ActivitiesSectionContent = forwardRef<
             {item.role?.trim() ? (
               <ActivityDetailRow label="역할" value={item.role.trim()} />
             ) : null}
-            {item.achievements?.trim() ? (
-              <ActivityDetailRow label="성과" value={item.achievements.trim()} />
+            {achievementSummary ? (
+              <ActivityDetailRow label="성과 및 결과" value={achievementSummary} />
+            ) : null}
+            {achievementDetail ? (
+              <ActivityDetailRow
+                label={achievementSummary ? '성과 설명' : '성과'}
+                value={achievementDetail}
+              />
             ) : null}
           </S.DetailPanel>
         ) : null}
@@ -1083,30 +1094,31 @@ const S = {
     background-color: ${palette.blue300};
     box-sizing: border-box;
   `,
-  DetailRow: styled(Flex.Row)`
-    display: flex;
-    flex-direction: row;
-    align-items: flex-start;
-    gap: 0.65rem;
+  DetailRow: styled('div')`
+    display: grid;
+    grid-template-columns: minmax(5.75rem, auto) minmax(0, 1fr);
+    align-items: start;
+    gap: 0.65rem 0.75rem;
     width: 100%;
     min-width: 0;
   `,
   DetailLabel: styled('span')`
-    flex: 0 0 2.25rem;
     font-size: 0.6875rem;
     font-weight: 700;
     line-height: 1.45;
     color: ${palette.blue600};
     letter-spacing: 0.02em;
+    word-break: keep-all;
+    white-space: nowrap;
   `,
   DetailValue: styled('span')`
-    flex: 1 1 auto;
     min-width: 0;
     font-size: 0.8125rem;
     font-weight: 500;
     line-height: 1.5;
     color: ${palette.nearBlack};
     word-break: break-word;
+    overflow-wrap: anywhere;
   `,
   BodyText: styled('p')`
     margin: 0;
